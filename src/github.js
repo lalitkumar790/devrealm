@@ -47,9 +47,9 @@ export async function fetchRepositoryTree(repo) {
   const tree=await request(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
   const repositoryTools=await import("./repository.js");
   const analysis=repositoryTools.analyzeTree(tree.tree||[]);
-  const sourceFiles=analysis.files.filter(file=>file.sha&&/\\.(js|jsx|ts|tsx|mjs|cjs)$/.test(file.path)).slice(0,12);
+  const sourceFiles=analysis.files.filter(file=>file.sha&&/\.(js|jsx|ts|tsx|mjs|cjs)$/.test(file.path)).slice(0,12);
   const knownPaths=analysis.files.map(file=>file.path);
-  const relationBatches=await Promise.all(sourceFiles.map(async file=>{try{const blob=await request(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/git/blobs/${file.sha}`);const binary=atob((blob.content||"").replace(/\\s/g,""));const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));const source=new TextDecoder().decode(bytes);return repositoryTools.extractImportSpecifiers(source).map(specifier=>({from:file.path,to:repositoryTools.resolveImportPath(file.path,specifier,knownPaths),specifier})).filter(link=>link.to);}catch{return [];}}));
+  const relationBatches=await Promise.all(sourceFiles.map(async file=>{try{const blob=await request(\`/repos/\${encodeURIComponent(owner)}/\${encodeURIComponent(repo.name)}/git/blobs/\${file.sha}\`);const binary=atob((blob.content||"").replace(/\s/g,""));const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));const source=new TextDecoder().decode(bytes);return repositoryTools.extractImportSpecifiers(source).map(specifier=>({from:file.path,to:repositoryTools.resolveImportPath(file.path,specifier,knownPaths),specifier})).filter(link=>link.to);}catch{return [];}}));
   const relations=relationBatches.flat();
   return {...analysis,relations,scannedSourceFiles:sourceFiles.length,truncated:Boolean(tree.truncated),branch};
 }
