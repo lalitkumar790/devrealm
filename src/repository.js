@@ -126,3 +126,24 @@ export function analyzeArchitecture(analysis = {}) {
   entryCandidates, hubs, isolated, cycles, modules:[...modules.values()].sort((a,b)=>b.links-a.links||b.files-a.files),
   metrics, cycleFiles:new Set(cycles.flat()) };
 }
+
+
+export function traceDependencies(analysis = {}, targetPath = "") {
+ const sampled = new Set(analysis.sampledSourcePaths || []);
+ if (!sampled.has(targetPath)) return { target:targetPath, upstream:[], downstream:[], impacted:[], links:[], found:false };
+ const outgoing = new Map([...sampled].map(path=>[path,new Set()]));
+ const incoming = new Map([...sampled].map(path=>[path,new Set()]));
+ for (const edge of analysis.relations || []) {
+  if (!sampled.has(edge.from) || !sampled.has(edge.to)) continue;
+  outgoing.get(edge.from).add(edge.to); incoming.get(edge.to).add(edge.from);
+ }
+ function walk(graph) {
+  const seen=new Set(),queue=[targetPath];
+  while(queue.length){const current=queue.shift();for(const next of graph.get(current)||[])if(!seen.has(next)){seen.add(next);queue.push(next);}}
+  seen.delete(targetPath);return [...seen].sort();
+ }
+ const upstream=walk(incoming),downstream=walk(outgoing),impacted=[...new Set([targetPath,...upstream])].sort();
+ const visible=new Set([targetPath,...upstream,...downstream]);
+ const links=(analysis.relations||[]).filter(edge=>visible.has(edge.from)&&visible.has(edge.to)&&sampled.has(edge.from)&&sampled.has(edge.to));
+ return {target:targetPath,upstream,downstream,impacted,links,found:true};
+}
