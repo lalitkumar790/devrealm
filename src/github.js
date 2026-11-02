@@ -19,3 +19,23 @@ export async function fetchDeveloper(username) {
   const repos = repositories.filter(repo => !repo.fork).sort((a,b)=>b.stargazers_count-a.stargazers_count);
   return { profile, repositories: repos };
 }
+
+export async function fetchRecentCommits(username, repositories) {
+  const candidates = repositories.slice(0, 6);
+  const batches = await Promise.all(candidates.map(async repo => {
+    try {
+      const owner = repo.owner?.login || username;
+      const commits = await request(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/commits?author=${encodeURIComponent(username)}&per_page=8`);
+      return commits.map(item => ({
+        sha: item.sha,
+        message: item.commit?.message?.split("\\n")[0] || "Commit",
+        date: item.commit?.author?.date || item.commit?.committer?.date,
+        repo: repo.name,
+        url: item.html_url
+      })).filter(item => item.date);
+    } catch {
+      return [];
+    }
+  }));
+  return batches.flat().sort((a,b)=>new Date(b.date)-new Date(a.date));
+}
