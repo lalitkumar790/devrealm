@@ -20,3 +20,5 @@
 }
 
 .deep-dive-button{display:block;width:100%;margin:12px 0 0;padding:11px;border:1px solid #8cebd066;background:#12302c;color:#a4f5d7;font:9px "DM Mono",monospace;letter-spacing:.08em;cursor:pointer}.deep-dive-button:disabled{opacity:.5}.deep-dive-button[hidden]{display:none}
+
+.source-viewer{margin-top:14px;border:1px solid #8cebd044;background:#050b13eF;border-radius:8px;overflow:hidden}.source-viewer[hidden]{display:none}.source-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;color:#a4f5d7;font:9px "DM Mono",monospace;overflow-wrap:anywhere}.source-heading button{background:transparent;border:0;color:#d9f5ee;font-size:20px;cursor:pointer}.source-meta{padding:0 12px 8px;color:#7d9b9e;font:9px "DM Mono",monospace}.source-viewer pre{max-height:38vh;overflow:auto;margin:0;padding:12px;border-top:1px solid #8cebd022;color:#c9dedb;font:10px/1.65 "DM Mono",monospace;white-space:pre;tab-size:2}.source-viewer code{font:inherit;color:inherit}
