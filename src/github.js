@@ -39,3 +39,12 @@ export async function fetchRecentCommits(username, repositories) {
   }));
   return batches.flat().sort((a,b)=>new Date(b.date)-new Date(a.date));
 }
+
+export async function fetchRepositoryTree(repo) {
+  const owner=repo.owner?.login;
+  const branch=repo.default_branch;
+  if(!owner || !branch) throw new Error("This repository has no accessible default branch.");
+  const tree=await request(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+  const analysis=(await import("./repository.js")).analyzeTree(tree.tree||[]);
+  return {...analysis,truncated:Boolean(tree.truncated),branch};
+}
