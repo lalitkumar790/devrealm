@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies } from "../src/repository.js";
+import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols } from "../src/repository.js";
 
 test("analyzeTree counts files, source files and directory contents", () => {
   const result = analyzeTree([
@@ -107,4 +107,16 @@ test("traceDependencies handles unknown files and cycles without looping",()=>{
  const trace=traceDependencies(analysis,"a.js");
  assert.deepEqual(trace.upstream,["b.js"]);
  assert.deepEqual(trace.downstream,["b.js","c.js"]);
+});
+
+test("analyzeSymbols indexes declarations and cross-file references",()=>{
+ const symbols=analyzeSymbols([
+  {path:"src/service.js",source:"export function calculateTotal() { return 1; }"},
+  {path:"src/app.js",source:"import { calculateTotal } from './service.js';\ncalculateTotal();"},
+  {path:"src/model.py",source:"def build_model():\n pass"}
+ ]);
+ const total=symbols.find(item=>item.name==="calculateTotal");
+ assert.equal(total.definition.path,"src/service.js");
+ assert.equal(total.referenceCount,2);
+ assert.ok(symbols.some(item=>item.name==="build_model"&&item.kind==="function"));
 });
