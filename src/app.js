@@ -1,4 +1,4 @@
-import { fetchDeveloper, fetchRecentCommits, fetchRepositoryTree } from "./github.js";
+import { fetchDeveloper, fetchRecentCommits, fetchRepositoryTree, fetchRepositoryFile } from "./github.js";
 import { SAMPLE_PROFILE, SAMPLE_REPOS, LANGUAGE_COLORS } from "./data.js";
 import { createUniverse } from "./scene3d.js";
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat().format(n||0);
@@ -9,7 +9,7 @@ function showRepo(repo,node){
  const color=LANGUAGE_COLORS[repo.language||"Other"]||LANGUAGE_COLORS.Other;
  $("detail-name").textContent=node?node.name:repo.name;
  $("detail-description").textContent=node?(node.type==="directory"?node.path+" · "+node.files+" files · "+node.sourceFiles+" source files":node.path+" · "+fmt(node.size)+" bytes"):repo.description||"No public description for this repository.";
- $("enter-repository").hidden=Boolean(node);$("exit-repository").hidden=!node;$("enter-folder").hidden=!(node&&node.type==="directory");$("up-folder").hidden=!currentFolderPath;
+ $("enter-repository").hidden=Boolean(node);$("exit-repository").hidden=!node;$("view-source").hidden=!(node&&node.type==="file");$("source-viewer").hidden=true;$("enter-folder").hidden=!(node&&node.type==="directory");$("up-folder").hidden=!currentFolderPath;
  $("planet-swatch").style.background="radial-gradient(circle at 32% 28%,#fff,"+color+" 17%,#183747 53%,#050b14 80%)";
  $("planet-swatch").style.boxShadow="0 0 38px "+color+"66,inset -10px -8px 16px #0009";
  $("detail-tags").innerHTML=node?"<span>"+node.type.toUpperCase()+"</span><span>"+node.path.split("/").length+" LEVEL</span>":[repo.language||"Other",pulse(repo)].map(x=>"<span>"+x+"</span>").join("");
@@ -24,6 +24,9 @@ async function load(username){
 }
 $("search-form").addEventListener("submit",e=>{e.preventDefault();load($("username").value.trim());});
 $("close-inspector").addEventListener("click",()=>$("inspector").classList.remove("open"));
+$("view-source").addEventListener("click",async()=>{const repo=window.selectedRepository,file=window.selectedNode;if(!repo||!file||file.type!=="file")return;const button=$("view-source");button.disabled=true;button.textContent="FETCHING SOURCE…";$("source-viewer").hidden=false;$("source-path").textContent=file.path;$("source-code").textContent="Loading source from GitHub…";try{const source=await fetchRepositoryFile(repo,file);$("source-code").textContent=source||"(empty file)";$("source-meta").textContent=source.split("\n").length+" lines · "+new TextEncoder().encode(source).length+" bytes";}catch(error){$("source-code").textContent=error.message;$("source-meta").textContent="Preview unavailable";}finally{button.disabled=false;button.textContent="VIEW SOURCE CODE ↗";}});
+$("close-source").addEventListener("click",()=>$("source-viewer").hidden=true);
+
 $("enter-repository").addEventListener("click",async()=>{const repo=window.selectedRepository;if(!repo)return;$("status").textContent="Reading repository tree…";$("enter-repository").disabled=true;try{const tree=await fetchRepositoryTree(repo);currentFolderPath="";universe.enterRepository(repo,tree);$("up-folder").hidden=true;$("status").textContent="Repository interior · "+tree.totalFiles+" files · "+tree.sourceCount+" source files · "+tree.relations.length+" inferred links from "+tree.scannedSourceFiles+" sampled files"+(tree.truncated?" · GitHub tree truncated":"");$("world-title").textContent=repo.name.toUpperCase()+" / INTERIOR";$("world-subtitle").textContent=tree.branch+" · "+tree.directories.length+" directories · "+Object.keys(tree.extensionCounts).length+" file types";$("inspector").classList.remove("open");}catch(error){$("status").textContent=error.message;}finally{$("enter-repository").disabled=false;}});
 $("exit-repository").addEventListener("click",()=>{$("up-folder").hidden=true;currentFolderPath="";universe.exitRepository();renderProfile();$("inspector").classList.remove("open");});
 $("enter-folder").addEventListener("click",()=>{const node=window.selectedNode;if(!node||node.type!=="directory")return;currentFolderPath=node.path;universe.enterDirectory(currentFolderPath);$("up-folder").hidden=false;$("world-title").textContent=node.name.toUpperCase()+" / REGION";$("world-subtitle").textContent=node.path+" · "+node.files+" files · "+node.sourceFiles+" source files";$("inspector").classList.remove("open");});
