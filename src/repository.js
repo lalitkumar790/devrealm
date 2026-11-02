@@ -26,3 +26,14 @@ export function extractImportSpecifiers(source="") {
 }
 
 export function resolveImportPath(fromPath,specifier,knownPaths=[]){const base=fromPath.split("/").slice(0,-1);for(const part of specifier.split("/")){if(!part||part===".")continue;if(part==="..")base.pop();else base.push(part);}const stem=base.join("/");const candidates=[stem,stem+".js",stem+".jsx",stem+".ts",stem+".tsx",stem+".mjs",stem+".cjs",stem+"/index.js",stem+"/index.ts",stem+"/index.tsx"];return candidates.find(path=>knownPaths.includes(path))||null;}
+
+export function compareTrees(before,after){
+ const oldFiles=new Map((before.files||[]).map(file=>[file.path,file]));
+ const newFiles=new Map((after.files||[]).map(file=>[file.path,file]));
+ const added=[],deleted=[],modified=[],unchanged=[];
+ for(const [path,file] of newFiles){const previous=oldFiles.get(path);if(!previous)added.push(file);else if(previous.sha&&file.sha&&previous.sha!==file.sha)modified.push({before:previous,after:file});else unchanged.push(file);}
+ for(const [path,file] of oldFiles)if(!newFiles.has(path))deleted.push(file);
+ const oldDirs=new Set((before.directories||[]).map(dir=>dir.path)),newDirs=new Set((after.directories||[]).map(dir=>dir.path));
+ const addedDirectories=[...newDirs].filter(path=>!oldDirs.has(path)),deletedDirectories=[...oldDirs].filter(path=>!newDirs.has(path));
+ return {added,deleted,modified,unchanged,addedDirectories,deletedDirectories,counts:{added:added.length,deleted:deleted.length,modified:modified.length,unchanged:unchanged.length,addedDirectories:addedDirectories.length,deletedDirectories:deletedDirectories.length}};
+}
