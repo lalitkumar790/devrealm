@@ -43,3 +43,27 @@ test("createLineDiff handles insertions, deletions and identical files",()=>{
 test("createLineDiff refuses oversized inputs without allocating a huge matrix",()=>{
  const diff=createLineDiff("a\nb","x\ny",{maxCells:1});assert.equal(diff.truncated,true);assert.equal(diff.lines.length,0);
 });
+
+
+test("extractImportSpecifiers recognises Python, Rust, Java and Go imports",()=>{
+ const source=[
+  "from app.services import worker",
+  "import app.models",
+  "use crate::engine::planner;",
+  "import com.example.core.Engine;",
+  'import "github.com/acme/project/internal/store"'
+ ].join("\n");
+ const refs=extractImportSpecifiers(source);
+ assert.ok(refs.includes("app.services"));
+ assert.ok(refs.includes("app.models"));
+ assert.ok(refs.includes("crate::engine::planner"));
+ assert.ok(refs.includes("com.example.core.Engine"));
+ assert.ok(refs.includes("github.com/acme/project/internal/store"));
+});
+test("resolveImportPath maps language module names to local source files",()=>{
+ const known=["app/services.py","app/models.py","src/engine/planner.rs","com/example/core/Engine.java","internal/store/store.go"];
+ assert.equal(resolveImportPath("main.py","app.services",known),"app/services.py");
+ assert.equal(resolveImportPath("src/main.rs","crate::engine::planner",known),"src/engine/planner.rs");
+ assert.equal(resolveImportPath("Main.java","com.example.core.Engine",known),"com/example/core/Engine.java");
+ assert.equal(resolveImportPath("main.go","github.com/acme/project/internal/store",known),"internal/store/store.go");
+});
