@@ -85,4 +85,8 @@ canvas.addEventListener("pointerup",event=>{if(drag&&!drag.moved){const repo=hit
 canvas.addEventListener("pointercancel",()=>drag=null);
 canvas.addEventListener("wheel",event=>{event.preventDefault();zoomAt(event.deltaY<0?1.08:1/1.08);},{passive:false});
 new ResizeObserver(resize).observe(canvas);
-updateWorld(profile,repositories);resize();
+updateWorld(profile,repositories);
+$("commit-total").textContent="—";
+$("activity-caption").textContent="Generate a GitHub world to explore its recent commit timeline.";
+$("activity-chart").innerHTML='<div class="activity-placeholder">Recent commit history will appear here after a GitHub lookup.</div>';
+resize();
