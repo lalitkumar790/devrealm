@@ -53,3 +53,16 @@ export async function fetchRepositoryTree(repo) {
   const relations=relationBatches.flat();
   return {...analysis,relations,scannedSourceFiles:sourceFiles.length,truncated:Boolean(tree.truncated),branch};
 }
+
+export async function fetchRepositoryFile(repo,file) {
+  if(!file?.sha) throw new Error("This file has no readable Git blob.");
+  if((file.size||0)>80000) throw new Error("This file is larger than the 80 KB preview limit. Open it on GitHub instead.");
+  const owner=repo.owner?.login;
+  if(!owner) throw new Error("Repository owner information is unavailable.");
+  const blob=await request("/repos/"+encodeURIComponent(owner)+"/"+encodeURIComponent(repo.name)+"/git/blobs/"+file.sha);
+  if(blob.encoding!=="base64") throw new Error("GitHub returned an unsupported file encoding.");
+  const binary=atob((blob.content||"").replace(/\s/g,""));
+  const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));
+  if(bytes.some(byte=>byte===0)) throw new Error("This appears to be a binary file. Open it on GitHub instead.");
+  return new TextDecoder("utf-8",{fatal:false}).decode(bytes);
+}
