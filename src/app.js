@@ -5,7 +5,7 @@ import { createWorld, drawWorld, hitTest } from "./world.js";
 const $ = id => document.getElementById(id);
 const canvas=$("world"),ctx=canvas.getContext("2d");
 let profile=SAMPLE_PROFILE,repositories=SAMPLE_REPOS,world=createWorld(repositories,profile.login),selected=null;
-let view={x:0,y:0,zoom:1},drag=null,raf=0;
+let view={x:0,y:0,zoom:1},drag=null,raf=0,repoFilter="all",repoQuery="";
 
 function resize(){
   const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);
@@ -32,9 +32,29 @@ function renderLanguages(){
     return `<div class="language-row"><span>${escapeHtml(name)}</span><div class="language-track"><div class="language-fill" style="width:${pct}%;background:${color}"></div></div><span class="language-pct">${pct}%</span></div>`;
   }).join("")||'<p class="muted">No public language metadata.</p>';
 }
+function projectPulse(repo){
+  const updated=repo.updated_at?new Date(repo.updated_at):null;
+  if(!updated||Number.isNaN(updated.getTime()))return {key:"unknown",label:"UNKNOWN",age:null};
+  const age=Math.max(0,Math.floor((Date.now()-updated.getTime())/86400000));
+  if(age<=30)return {key:"active",label:"ACTIVE",age};
+  if(age<=180)return {key:"cooling",label:"COOLING",age};
+  return {key:"dormant",label:"DORMANT",age};
+}
 function renderRepos(){
-  $("repo-list").innerHTML=repositories.slice(0,24).map(repo=>`<button class="repo-item" type="button" data-id="${repo.id}" aria-pressed="${selected?.id===repo.id}"><span><strong>${escapeHtml(repo.name)}</strong><small>${escapeHtml(repo.description||"No description")}</small></span><span class="repo-meta">★ ${fmt(repo.stargazers_count)}</span></button>`).join("")||'<p class="muted">No public repositories found.</p>';
+  const counts={active:0,cooling:0,dormant:0,unknown:0};
+  repositories.forEach(repo=>counts[projectPulse(repo).key]++);
+  $("repo-summary").textContent=`${repositories.length} · ${counts.active} ACTIVE`;
+  const filtered=repositories.filter(repo=>{
+    const pulse=projectPulse(repo),matchesFilter=repoFilter==="all"||pulse.key===repoFilter;
+    const haystack=[repo.name,repo.description,repo.language,...(repo.topics||[])].join(" ").toLowerCase();
+    return matchesFilter&&haystack.includes(repoQuery);
+  }).slice(0,100);
+  $("repo-list").innerHTML=filtered.map(repo=>{
+    const pulse=projectPulse(repo),age=pulse.age===null?"update unknown":pulse.age===0?"updated today":`updated ${pulse.age}d ago`;
+    return `<button class="repo-item" type="button" data-id="${repo.id}" aria-pressed="${selected?.id===repo.id}"><span class="repo-item-main"><strong>${escapeHtml(repo.name)}</strong><small>${escapeHtml(repo.description||"No description")}</small><span class="repo-state state-${pulse.key}">${pulse.label} · ${age}</span></span><span class="repo-meta">★ ${fmt(repo.stargazers_count)}</span></button>`;
+  }).join("")||'<p class="muted repo-no-results">No repositories match this view.</p>';
   $("repo-list").querySelectorAll("button").forEach(button=>button.addEventListener("click",()=>selectRepo(repositories.find(r=>String(r.id)===button.dataset.id))));
+  document.querySelectorAll(".filter-chip").forEach(button=>{const active=button.dataset.filter===repoFilter;button.classList.toggle("is-active",active);button.setAttribute("aria-pressed",String(active));});
 }
 function escapeHtml(value=""){return String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));}
 function renderActivity(commits){
@@ -52,19 +72,21 @@ function renderActivity(commits){
 }
 function selectRepo(repo){
   if(!repo)return;selected=repo;renderRepos();render();
-  const language=repo.language||"Other";
-  $("detail-content").innerHTML=`<h3 class="detail-name">${escapeHtml(repo.name)}</h3><p class="detail-description">${escapeHtml(repo.description||"No public description.")}</p><div class="detail-tags"><span class="detail-tag">${escapeHtml(language)}</span><span class="detail-tag">PRIMARY LANGUAGE</span></div><div class="detail-facts"><span>★ ${fmt(repo.stargazers_count)} STARS</span><span>⑂ ${fmt(repo.forks_count)} FORKS</span></div><a class="detail-link" href="${escapeHtml(repo.html_url)}" target="_blank" rel="noreferrer">OPEN REPOSITORY ↗</a>`;
+  const language=repo.language||"Other",pulse=projectPulse(repo),age=pulse.age===null?"Last update unavailable":pulse.age===0?"Updated today":`Last updated ${pulse.age} days ago`;
+  $("detail-content").innerHTML=`<h3 class="detail-name">${escapeHtml(repo.name)}</h3><p class="detail-description">${escapeHtml(repo.description||"No public description.")}</p><div class="detail-tags"><span class="detail-tag">${escapeHtml(language)}</span><span class="detail-tag">PRIMARY LANGUAGE</span><span class="detail-tag state-${pulse.key}">${pulse.label}</span></div><p class="pulse-explainer">${age} · Status is estimated from repository metadata, not commit frequency.</p><div class="detail-facts"><span>★ ${fmt(repo.stargazers_count)} STARS</span><span>⑂ ${fmt(repo.forks_count)} FORKS</span></div><a class="detail-link" href="${escapeHtml(repo.html_url)}" target="_blank" rel="noreferrer">OPEN REPOSITORY ↗</a>`;
 }
 function updateWorld(newProfile,newRepos){
   profile=newProfile;repositories=newRepos;selected=null;view={x:0,y:0,zoom:1};
   world=createWorld(repositories,profile.login);
   $("world-title").textContent=(profile.name||profile.login)+"'s Expanse";
   $("world-subtitle").textContent=`@ ${profile.login} · ${repositories.length} public owned repositories · generated just now`;
-  $("repo-count").textContent=fmt(repositories.length);
+  $("repo-count").textContent=fmt(repositories.length);repoFilter="all";repoQuery="";$("repo-search").value="";
   renderProfile();renderLanguages();renderRepos();render();
   $("commit-total").textContent="…";$("activity-caption").textContent="Sampling recent commit history…";$("activity-chart").innerHTML='<div class="activity-placeholder">Collecting recent public commit signals…</div>';$("activity-feed").innerHTML="";
   $("detail-content").innerHTML='<div class="empty-inspector"><span>⌁</span><p>Select a structure on the map<br>or a repository in the list.</p></div>';
 }
+$("repo-search").addEventListener("input",event=>{repoQuery=event.target.value.trim().toLowerCase();renderRepos();});
+document.querySelectorAll(".filter-chip").forEach(button=>button.addEventListener("click",()=>{repoFilter=button.dataset.filter;renderRepos();}));
 $("search-form").addEventListener("submit",async event=>{
   event.preventDefault();const username=$("username").value.trim(),button=$("generate");
   button.disabled=true;button.textContent="SCANNING…";$("status").textContent="Contacting GitHub's public API…";
