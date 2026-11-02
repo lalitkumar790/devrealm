@@ -24,7 +24,7 @@ export function createUniverse(canvas,onSelect){
  const nebula=new THREE.Group();scene.add(nebula);for(let i=0;i<8;i++){const sprite=new THREE.Sprite(new THREE.SpriteMaterial({color:[0x244d65,0x44365e,0x1e635a,0x49354a][i%4],transparent:true,opacity:.075,depthWrite:false,blending:THREE.AdditiveBlending}));sprite.position.set((rand()-.5)*950,(rand()-.5)*400,(rand()-.5)*950);sprite.scale.set(170+rand()*170,100+rand()*100,1);nebula.add(sprite);}
  const core=new THREE.Group();scene.add(core);const sun=new THREE.Mesh(new THREE.SphereGeometry(13,48,48),new THREE.MeshStandardMaterial({color:0xb8ffe9,emissive:0x3ca98d,emissiveIntensity:2.8,roughness:.3}));core.add(sun);core.add(new THREE.Mesh(new THREE.SphereGeometry(18,40,40),new THREE.MeshBasicMaterial({color:0x64d9bd,transparent:true,opacity:.075,side:THREE.BackSide})));
  for(let r=30;r<=165;r+=27){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.035,4,180),new THREE.MeshBasicMaterial({color:0x6d9b9a,transparent:true,opacity:.14}));ring.rotation.x=Math.PI/2;core.add(ring);}
- const group=new THREE.Group();scene.add(group);const interior=new THREE.Group();scene.add(interior);interior.visible=false;let interiorObjects=[];const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let planetMeshes=[],paused=false,focusTarget=null,focusPosition=null;
+ const group=new THREE.Group();scene.add(group);const interior=new THREE.Group();scene.add(interior);interior.visible=false;let interiorObjects=[],architectureOverlay=null;const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let planetMeshes=[],paused=false,focusTarget=null,focusPosition=null;
  function labelSprite(text){const c=document.createElement("canvas"),ctx=c.getContext("2d");c.width=512;c.height=96;ctx.font="500 32px monospace";ctx.textAlign="center";ctx.fillStyle="#e2f8f1";ctx.shadowColor="#a4f5d7";ctx.shadowBlur=15;ctx.fillText(text.slice(0,25),256,58);const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false}));sprite.scale.set(34,6.3,1);return sprite;}
  function clearGroup(){while(group.children.length){const obj=group.children[group.children.length-1];group.remove(obj);obj.traverse?.(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});}}
  function setRepositories(repos,login){
@@ -70,9 +70,39 @@ function drawInterior(path=""){
   interior.userData.fileMeshes=fileMeshes;\n  const relationPositions=[];(analysis.relations||[]).forEach(link=>{const from=fileMeshes.get(link.from),to=fileMeshes.get(link.to);if(from&&to){relationPositions.push(from.position.x,from.position.y,from.position.z,to.position.x,to.position.y,to.position.z);}});if(relationPositions.length){const edgeGeometry=new THREE.BufferGeometry();edgeGeometry.setAttribute("position",new THREE.Float32BufferAttribute(relationPositions,3));interior.add(new THREE.LineSegments(edgeGeometry,new THREE.LineBasicMaterial({color:0xe8b86d,transparent:true,opacity:.7})));}
   const d=Math.max(90,radius*2.8);camera.position.set(d*.15,d*.85,d*1.35);controls.target.set(0,0,0);controls.maxDistance=1200;controls.update();focusTarget=null;focusPosition=null;
 }
+function showArchitecture(result){
+  if(architectureOverlay){interior.remove(architectureOverlay);architectureOverlay.traverse(obj=>{obj.geometry?.dispose();if(obj.material)obj.material.dispose();});}
+  architectureOverlay=new THREE.Group();interior.add(architectureOverlay);
+  const fileMeshes=interior.userData.fileMeshes||new Map();
+  const categories=[
+   {name:"ENTRY",paths:(result.entryCandidates||[]).map(item=>item.path),color:0x62f5a9},
+   {name:"HUB",paths:(result.hubs||[]).map(item=>item.path),color:0x58c9ff},
+   {name:"CYCLE",paths:[...(result.cycleFiles||[])],color:0xff6f91},
+   {name:"ISOLATED",paths:(result.isolated||[]).map(item=>item.path),color:0xaab5c5}
+  ];
+  const priority=["CYCLE","ENTRY","HUB","ISOLATED"],byPath=new Map();
+  for(const category of categories)for(const path of category.paths)if(!byPath.has(path)||priority.indexOf(category.name)<priority.indexOf(byPath.get(path).name))byPath.set(path,category);
+  for(const [path,category] of byPath){
+   const node=fileMeshes.get(path);if(!node)continue;
+   node.material.emissive.setHex(category.color);node.material.emissiveIntensity=1.35;
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(2.65,.075,6,48),new THREE.MeshBasicMaterial({color:category.color,transparent:true,opacity:.92}));
+   ring.position.copy(node.position);ring.rotation.x=Math.PI/2;architectureOverlay.add(ring);
+   const beacon=new THREE.Mesh(new THREE.SphereGeometry(.22,8,8),new THREE.MeshBasicMaterial({color:category.color}));
+   beacon.position.copy(node.position).add(new THREE.Vector3(0,2.8,0));architectureOverlay.add(beacon);
+  }
+  for(const cycle of result.cycles||[]){
+   const points=cycle.map(path=>fileMeshes.get(path)).filter(Boolean).map(mesh=>mesh.position.clone());
+   if(points.length<2)continue;
+   const center=points.reduce((sum,p)=>sum.add(p),new THREE.Vector3()).multiplyScalar(1/points.length);
+   const radius=Math.max(5,...points.map(p=>p.distanceTo(center)+3));
+   const loopPoints=Array.from({length:65},(_,i)=>new THREE.Vector3(center.x+Math.cos(i/64*Math.PI*2)*radius,center.y+1.1,center.z+Math.sin(i/64*Math.PI*2)*radius));
+   architectureOverlay.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(loopPoints),new THREE.LineBasicMaterial({color:0xff6f91,transparent:true,opacity:.85})));
+  }
+  return byPath.size;
+}
 function enterRepository(repo,analysis,diff=null){interior.userData.repo=repo;interior.userData.analysis=analysis;interior.userData.diff=diff;group.visible=false;core.visible=false;interior.visible=true;drawInterior("");}
 function enterDirectory(path){if(!interior.visible||!interior.userData.analysis)return;drawInterior(path);}
 function goUpDirectory(){const path=interior.userData.path||"";if(!path)return;enterDirectory(path.split("/").slice(0,-1).join("/"));}
 function exitRepository(){interior.visible=false;group.visible=true;core.visible=true;focusTarget=null;focusPosition=null;controls.target.set(0,0,0);const d=Math.max(260,Math.min(700,planetMeshes.length*10));camera.position.set(d*.08,d*.48,d);controls.update();}
- return {setRepositories,enterRepository,enterDirectory,goUpDirectory,exitRepository,select(id){const p=planetMeshes.find(m=>String(m.userData.repo.id)===String(id));if(p)focus(p.userData.repo,p);},reset(){focusTarget=null;focusPosition=null;controls.target.set(0,0,0);const d=Math.max(260,Math.min(700,planetMeshes.length*10));camera.position.set(d*.08,d*.48,d);controls.update();},focusPath(path){const mesh=interior.userData.fileMeshes?.get(path);if(!mesh)return false;const target=mesh.getWorldPosition(new THREE.Vector3());focusTarget=target;const direction=new THREE.Vector3().subVectors(camera.position,controls.target).normalize();focusPosition=target.clone().add(direction.multiplyScalar(24));onSelect(interior.userData.repo,mesh.userData.node);return true;},pause(value){paused=value;controls.autoRotate=!value;}};
+ return {setRepositories,enterRepository,enterDirectory,goUpDirectory,exitRepository,showArchitecture,select(id){const p=planetMeshes.find(m=>String(m.userData.repo.id)===String(id));if(p)focus(p.userData.repo,p);},reset(){focusTarget=null;focusPosition=null;controls.target.set(0,0,0);const d=Math.max(260,Math.min(700,planetMeshes.length*10));camera.position.set(d*.08,d*.48,d);controls.update();},focusPath(path){const mesh=interior.userData.fileMeshes?.get(path);if(!mesh)return false;const target=mesh.getWorldPosition(new THREE.Vector3());focusTarget=target;const direction=new THREE.Vector3().subVectors(camera.position,controls.target).normalize();focusPosition=target.clone().add(direction.multiplyScalar(24));onSelect(interior.userData.repo,mesh.userData.node);return true;},pause(value){paused=value;controls.autoRotate=!value;}};
 }
