@@ -51,7 +51,7 @@ export async function fetchRepositoryTree(repo, revision = repo.default_branch, 
   const knownPaths=analysis.files.map(file=>file.path);
   const relationBatches=await Promise.all(sourceFiles.map(async file=>{try{const blob=await request("/repos/"+encodeURIComponent(owner)+"/"+encodeURIComponent(repo.name)+"/git/blobs/"+file.sha);const binary=atob((blob.content||"").replace(/\s/g,""));const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));const source=new TextDecoder().decode(bytes);return repositoryTools.extractImportSpecifiers(source,file.path).map(specifier=>({from:file.path,to:repositoryTools.resolveImportPath(file.path,specifier,knownPaths),specifier,language:(file.path.split(".").pop()||"").toLowerCase()})).filter(link=>link.to);}catch{return [];}}));
   const relations=relationBatches.flat();
-  return {...analysis,relations,scannedSourceFiles:sourceFiles.length,truncated:Boolean(tree.truncated),branch};
+  return {...analysis,relations,scannedSourceFiles:sourceFiles.length,sampledSourcePaths:sourceFiles.map(file=>file.path),truncated:Boolean(tree.truncated),branch};
 }
 
 export async function fetchRepositoryFile(repo,file) {
