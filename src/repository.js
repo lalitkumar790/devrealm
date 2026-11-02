@@ -78,3 +78,51 @@ export function createLineDiff(beforeText="",afterText="",options={}){
  const changed=lines.filter(line=>line.type!=="context").length;
  return {truncated:lines.length>=maxOutput,lines,oldLineCount:oldLines.length,newLineCount:newLines.length,added:lines.filter(x=>x.type==="added").length,removed:lines.filter(x=>x.type==="removed").length,changed};
 }
+
+
+export function analyzeArchitecture(analysis = {}) {
+ const sampled = new Set(analysis.sampledSourcePaths || []);
+ const nodes = [...sampled];
+ const outgoing = new Map(nodes.map(path => [path, new Set()]));
+ const incoming = new Map(nodes.map(path => [path, new Set()]));
+ for (const link of analysis.relations || []) {
+  if (!sampled.has(link.from) || !sampled.has(link.to)) continue;
+  outgoing.get(link.from).add(link.to);
+  incoming.get(link.to).add(link.from);
+ }
+ const metrics = nodes.map(path => {
+  const outDegree = outgoing.get(path).size, inDegree = incoming.get(path).size;
+  const base = path.split("/").pop().replace(/\.[^.]+$/, "").toLowerCase();
+  const conventional = ["index","main","app","server","cli","__main__"].includes(base) || /(^|\/)main\.(rs|go|java)$/.test(path);
+  return { path, inDegree, outDegree, degree: inDegree + outDegree, conventional };
+ });
+ const index = new Map(nodes.map((path, i) => [path, i]));
+ const discovery = new Map(), low = new Map(), stack = [], onStack = new Set(), cycles = [];
+ let sequence = 0;
+ function visit(path) {
+  discovery.set(path, sequence); low.set(path, sequence++); stack.push(path); onStack.add(path);
+  for (const next of outgoing.get(path)) {
+   if (!discovery.has(next)) { visit(next); low.set(path, Math.min(low.get(path), low.get(next))); }
+   else if (onStack.has(next)) low.set(path, Math.min(low.get(path), discovery.get(next)));
+  }
+  if (low.get(path) === discovery.get(path)) {
+   const component = []; let member;
+   do { member = stack.pop(); onStack.delete(member); component.push(member); } while (member !== path);
+   if (component.length > 1 || outgoing.get(path).has(path)) cycles.push(component.sort());
+  }
+ }
+ for (const path of nodes) if (!discovery.has(path)) visit(path);
+ const entryCandidates = metrics.filter(node => node.outDegree > 0 && (node.inDegree === 0 || node.conventional))
+  .sort((a,b) => Number(b.conventional)-Number(a.conventional) || b.outDegree-a.outDegree).slice(0,8);
+ const hubs = metrics.filter(node => node.degree >= 2).sort((a,b) => b.degree-a.degree).slice(0,8);
+ const isolated = metrics.filter(node => node.degree === 0).slice(0,12);
+ const modules = new Map();
+ for (const node of metrics) {
+  const module = node.path.includes("/") ? node.path.split("/")[0] : "(root)";
+  if (!modules.has(module)) modules.set(module,{name:module,files:0,links:0});
+  const item=modules.get(module);item.files++;item.links+=node.degree;
+ }
+ return { sampledFiles:nodes.length, resolvedLinks:[...outgoing.values()].reduce((sum,set)=>sum+set.size,0),
+  entryCandidates, hubs, isolated, cycles, modules:[...modules.values()].sort((a,b)=>b.links-a.links||b.files-a.files),
+  metrics, cycleFiles:new Set(cycles.flat()) };
+}
