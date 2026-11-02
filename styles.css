@@ -18,3 +18,5 @@
  .world-hud{bottom:76px}
  .topbar .source{font-size:8px}
 }
+
+.deep-dive-button{display:block;width:100%;margin:12px 0 0;padding:11px;border:1px solid #8cebd066;background:#12302c;color:#a4f5d7;font:9px "DM Mono",monospace;letter-spacing:.08em;cursor:pointer}.deep-dive-button:disabled{opacity:.5}.deep-dive-button[hidden]{display:none}
