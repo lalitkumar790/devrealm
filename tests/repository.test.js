@@ -30,16 +30,16 @@ test("compareTrees classifies added, deleted, modified and unchanged files",()=>
 
 
 test("createLineDiff labels changed lines and preserves line numbers",()=>{
- const diff=createLineDiff("alpha\\nkeep\\nold\\nomega","alpha\\nkeep\\nnew\\nomega");
+ const diff=createLineDiff("alpha\nkeep\nold\nomega","alpha\nkeep\nnew\nomega");
  assert.equal(diff.added,1);assert.equal(diff.removed,1);
  assert.deepEqual(diff.lines.filter(x=>x.type!=="context").map(x=>[x.type,x.line]),[["removed","old"],["added","new"]]);
  assert.equal(diff.lines.find(x=>x.line==="new").newLine,3);
 });
 test("createLineDiff handles insertions, deletions and identical files",()=>{
- const inserted=createLineDiff("a\\nc","a\\nb\\nc");assert.equal(inserted.added,1);assert.equal(inserted.removed,0);
- const deleted=createLineDiff("a\\nb\\nc","a\\nc");assert.equal(deleted.removed,1);assert.equal(deleted.added,0);
- const same=createLineDiff("one\\ntwo","one\\ntwo");assert.equal(same.changed,0);
+ const inserted=createLineDiff("a\nc","a\nb\nc");assert.equal(inserted.added,1);assert.equal(inserted.removed,0);
+ const deleted=createLineDiff("a\nb\nc","a\nc");assert.equal(deleted.removed,1);assert.equal(deleted.added,0);
+ const same=createLineDiff("one\ntwo","one\ntwo");assert.equal(same.changed,0);
 });
 test("createLineDiff refuses oversized inputs without allocating a huge matrix",()=>{
- const diff=createLineDiff("a\\nb","x\\ny",{maxCells:1});assert.equal(diff.truncated,true);assert.equal(diff.lines.length,0);
+ const diff=createLineDiff("a\nb","x\ny",{maxCells:1});assert.equal(diff.truncated,true);assert.equal(diff.lines.length,0);
 });
