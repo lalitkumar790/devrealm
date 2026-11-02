@@ -37,3 +37,23 @@ export function compareTrees(before,after){
  const addedDirectories=[...newDirs].filter(path=>!oldDirs.has(path)),deletedDirectories=[...oldDirs].filter(path=>!newDirs.has(path));
  return {added,deleted,modified,unchanged,addedDirectories,deletedDirectories,counts:{added:added.length,deleted:deleted.length,modified:modified.length,unchanged:unchanged.length,addedDirectories:addedDirectories.length,deletedDirectories:deletedDirectories.length}};
 }
+
+
+export function createLineDiff(beforeText="",afterText="",options={}){
+ const maxLines=options.maxLines||1200,maxCells=options.maxCells||1440000,maxOutput=options.maxOutput||500;
+ const oldLines=beforeText.replace(/\\r\\n/g,"\\n").split("\\n"),newLines=afterText.replace(/\\r\\n/g,"\\n").split("\\n");
+ let prefix=0;while(prefix<oldLines.length&&prefix<newLines.length&&oldLines[prefix]===newLines[prefix])prefix++;
+ let suffix=0;while(suffix<oldLines.length-prefix&&suffix<newLines.length-prefix&&oldLines[oldLines.length-1-suffix]===newLines[newLines.length-1-suffix])suffix++;
+ const a=oldLines.slice(prefix,oldLines.length-suffix),b=newLines.slice(prefix,newLines.length-suffix);
+ if(oldLines.length>maxLines||newLines.length>maxLines||a.length*b.length>maxCells)return {truncated:true,lines:[],oldLineCount:oldLines.length,newLineCount:newLines.length,reason:"File is too large for an in-browser line diff."};
+ const width=b.length+1,dp=new Uint32Array((a.length+1)*width);
+ for(let i=a.length-1;i>=0;i--)for(let j=b.length-1;j>=0;j--)dp[i*width+j]=a[i]===b[j]?dp[(i+1)*width+j+1]+1:Math.max(dp[(i+1)*width+j],dp[i*width+j+1]);
+ const lines=[];let i=0,j=0,oldNo=prefix+1,newNo=prefix+1;
+ const push=(type,line)=>{if(lines.length<maxOutput)lines.push({type,line,oldLine:type==="added"?null:oldNo,newLine:type==="removed"?null:newNo});if(type!=="added")oldNo++;if(type!=="removed")newNo++;};
+ for(let k=0;k<prefix;k++)push("context",oldLines[k]);
+ while(i<a.length&&j<b.length){if(a[i]===b[j]){push("context",a[i]);i++;j++;}else if(dp[(i+1)*width+j]>=dp[i*width+j+1]){push("removed",a[i++]);}else{push("added",b[j++]);}}
+ while(i<a.length)push("removed",a[i++]);while(j<b.length)push("added",b[j++]);
+ for(let k=suffix;k>0;k--)push("context",oldLines[oldLines.length-k]);
+ const changed=lines.filter(line=>line.type!=="context").length;
+ return {truncated:lines.length>=maxOutput,lines,oldLineCount:oldLines.length,newLineCount:newLines.length,added:lines.filter(x=>x.type==="added").length,removed:lines.filter(x=>x.type==="removed").length,changed};
+}
