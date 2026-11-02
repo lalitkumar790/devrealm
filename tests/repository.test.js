@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture } from "../src/repository.js";
+import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies } from "../src/repository.js";
 
 test("analyzeTree counts files, source files and directory contents", () => {
   const result = analyzeTree([
@@ -90,4 +90,21 @@ test("analyzeArchitecture ignores links outside the sampled graph",()=>{
  const result=analyzeArchitecture({sampledSourcePaths:["src/a.js"],relations:[{from:"src/a.js",to:"vendor/pkg.js"}]});
  assert.equal(result.resolvedLinks,0);
  assert.equal(result.isolated.length,1);
+});
+
+test("traceDependencies finds transitive upstream, downstream and impact paths",()=>{
+ const analysis={sampledSourcePaths:["app.js","service.js","db.js","view.js","orphan.js"],relations:[{from:"app.js",to:"service.js"},{from:"service.js",to:"db.js"},{from:"view.js",to:"service.js"}]};
+ const trace=traceDependencies(analysis,"service.js");
+ assert.deepEqual(trace.upstream,["app.js","view.js"]);
+ assert.deepEqual(trace.downstream,["db.js"]);
+ assert.deepEqual(trace.impacted,["app.js","service.js","view.js"]);
+ assert.equal(trace.links.length,3);
+ assert.equal(trace.found,true);
+});
+test("traceDependencies handles unknown files and cycles without looping",()=>{
+ const analysis={sampledSourcePaths:["a.js","b.js","c.js"],relations:[{from:"a.js",to:"b.js"},{from:"b.js",to:"a.js"},{from:"b.js",to:"c.js"}]};
+ assert.equal(traceDependencies(analysis,"missing.js").found,false);
+ const trace=traceDependencies(analysis,"a.js");
+ assert.deepEqual(trace.upstream,["b.js"]);
+ assert.deepEqual(trace.downstream,["b.js","c.js"]);
 });
