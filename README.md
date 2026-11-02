@@ -11,7 +11,7 @@ DevRealm turns repositories into explorable planets and groups them into systems
 - Repository systems are spatially clustered; shared languages and topics form constellation links.
 - Planets have atmospheres, drifting cloud shells, orbital rings, moons and labels.
 - Click a planet to inspect its repository and smoothly travel toward it. Reset returns to galaxy view.
-- Enter a repository interior generated from its recursive Git tree: top-level folders become illuminated regions, folder contents become structures, and root-level files become floating artifacts. Select structures to inspect path and file metadata.
+- Enter a repository interior generated from its recursive Git tree: top-level folders become illuminated regions, and you can descend into nested folders with a breadcrumb-style up-one-level control. Files become floating artifacts. A small sample of JavaScript/TypeScript source blobs is scanned for resolvable relative imports; matched references appear as amber pathways.
 - Active repository metadata adds a visual activity halo.
 - Search any public GitHub username; sample universe works without credentials.
 - Minimal in-world HUD keeps the 3D scene central.
@@ -28,7 +28,7 @@ Open http://localhost:8000. WebGL and network access to jsDelivr and api.github.
 
 ## Data and limitations
 
-DevRealm reads public GitHub profile and repository metadata from the GitHub REST API. It does not request a personal access token or send data to a DevRealm backend. Unauthenticated API limits apply. The activity indicator uses repository `updated_at` metadata, not a full contribution graph. Repository interiors use GitHub's recursive tree endpoint; very large trees may be truncated by GitHub, and the visualization currently maps directory/file metadata rather than parsing ASTs or proving code dependencies. The recent-commit signal samples up to eight authored commits from each of the six most-starred repositories returned by the profile query. Private repositories and private contribution data are not accessed.
+DevRealm reads public GitHub profile and repository metadata from the GitHub REST API. It does not request a personal access token or send data to a DevRealm backend. Unauthenticated API limits apply. The activity indicator uses repository `updated_at` metadata, not a full contribution graph. Repository interiors use GitHub's recursive tree endpoint; very large trees may be truncated by GitHub. Import pathways are inferred from up to 12 sampled JavaScript/TypeScript files and a lightweight import/require matcher. They are not a complete dependency graph, AST analysis, or proof of runtime dependencies. The recent-commit signal samples up to eight authored commits from each of the six most-starred repositories returned by the profile query. Private repositories and private contribution data are not accessed.
 
 ## Roadmap
 
