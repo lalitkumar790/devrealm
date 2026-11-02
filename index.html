@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080c12">
+  <meta name="description" content="DevRealm turns your GitHub activity into a living, explorable developer universe.">
+  <title>DevRealm — Your work has a world</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="DevRealm home"><span class="brand-mark">◈</span><span>DEVREALM</span><span class="brand-beta">FIELD ATLAS / 0.1</span></a>
+      <div class="top-actions"><span class="live-dot"></span><span class="mono muted">PUBLIC DATA MODE</span><a class="github-link" href="https://github.com/lalitkumar790/devrealm" target="_blank" rel="noreferrer">SOURCE ↗</a></div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <div class="eyebrow"><span>01</span> DIGITAL IDENTITY / WORLD GENERATOR</div>
+        <div class="intro-grid">
+          <div><h1>Your work<br>has a <em>world.</em></h1><p class="lede">A living atlas of the things you build. Projects become places. Languages shape the terrain. Your developer journey, made explorable.</p></div>
+          <form id="search-form" class="search-panel">
+            <label for="username">GENERATE A DEVELOPER WORLD</label>
+            <div class="search-row"><span class="at">@</span><input id="username" name="username" value="octocat" autocomplete="off" spellcheck="false" aria-label="GitHub username"><button id="generate" type="submit">GENERATE <span>↗</span></button></div>
+            <div class="search-hint"><span>↳</span> Any public GitHub username. No sign-in required.</div>
+            <div id="status" class="status" role="status" aria-live="polite">Sample universe loaded. Try a username.</div>
+          </form>
+        </div>
+      </section>
+
+      <section class="atlas-section">
+        <div class="section-head"><div><div class="eyebrow"><span>02</span> THE ATLAS</div><h2 id="world-title">The Octocat Expanse</h2><p id="world-subtitle" class="muted">A sample universe · generated from public project metadata</p></div><div class="map-tools"><button id="reset-view" class="tool-button" type="button" title="Reset map view">◎ <span>RESET</span></button><button id="zoom-out" class="tool-button" type="button" aria-label="Zoom out">−</button><button id="zoom-in" class="tool-button" type="button" aria-label="Zoom in">+</button></div></div>
+        <div class="atlas-frame">
+          <canvas id="world" aria-label="Interactive map of developer repositories. Use the repository list to select a project." role="img"></canvas>
+          <div class="map-overlay map-top-left"><span class="map-cross">⌖</span><span>SECTOR <b>DEV-001</b></span></div>
+          <div class="map-overlay map-top-right"><span class="legend-dot"></span> REPOSITORY SYSTEMS <span class="legend-line"></span> LANGUAGE BIOMES</div>
+          <div class="map-overlay map-bottom-left mono" id="map-coords">X 0000 / Y 0000</div>
+          <div class="map-overlay map-bottom-right mono">DRAG TO EXPLORE · SCROLL TO ZOOM</div>
+          <div id="map-empty" class="map-empty" hidden>NO WORLD DATA</div>
+        </div>
+        <div class="atlas-caption"><span><i class="tiny-dot"></i> <span id="repo-count">0</span> REPOSITORIES MAPPED</span><span>WORLD LAYOUT IS PROCEDURAL · TERRAIN COLOR = PRIMARY LANGUAGE</span></div>
+      </section>
+
+      <section class="data-grid">
+        <article class="panel profile-panel"><div class="panel-title"><span>03 / OPERATOR</span><span class="panel-index">PROFILE</span></div><div class="profile-main"><img id="avatar" src="https://github.com/octocat.png" alt="GitHub profile avatar"><div><h3 id="profile-name">The Octocat</h3><a id="profile-handle" href="https://github.com/octocat" target="_blank" rel="noreferrer">@octocat ↗</a><p id="profile-bio">A sample explorer</p></div></div><div class="profile-stats"><div><strong id="stat-repos">0</strong><span>REPOSITORIES</span></div><div><strong id="stat-followers">0</strong><span>FOLLOWERS</span></div><div><strong id="stat-following">0</strong><span>FOLLOWING</span></div></div></article>
+        <article class="panel language-panel"><div class="panel-title"><span>04 / TECHNOLOGY DNA</span><span class="panel-index">LANGUAGES</span></div><div id="language-list" class="language-list"></div></article>
+        <article class="panel repo-panel"><div class="panel-title"><span>05 / LOCATIONS</span><span class="panel-index">REPOSITORIES</span></div><div id="repo-list" class="repo-list"></div></article>
+        <article class="panel detail-panel"><div class="panel-title"><span>06 / SIGNAL</span><span class="panel-index">INSPECTOR</span></div><div id="detail-content" class="detail-content"><div class="empty-inspector"><span>⌁</span><p>Select a structure on the map<br>or a repository in the list.</p></div></div></article>
+      </section>
+      <footer><span>DEVREALM / AN EXPLORABLE DEVELOPER IDENTITY</span><span>BUILT FROM PUBLIC SIGNALS <b>✳</b></span></footer>
+    </main>
+  </div>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
