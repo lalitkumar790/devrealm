@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff } from "../src/repository.js";
+import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture } from "../src/repository.js";
 
 test("analyzeTree counts files, source files and directory contents", () => {
   const result = analyzeTree([
@@ -66,4 +66,28 @@ test("resolveImportPath maps language module names to local source files",()=>{
  assert.equal(resolveImportPath("src/main.rs","crate::engine::planner",known),"src/engine/planner.rs");
  assert.equal(resolveImportPath("Main.java","com.example.core.Engine",known),"com/example/core/Engine.java");
  assert.equal(resolveImportPath("main.go","github.com/acme/project/internal/store",known),"internal/store/store.go");
+});
+
+
+test("analyzeArchitecture identifies entry candidates, hubs, isolated files and modules",()=>{
+ const result=analyzeArchitecture({sampledSourcePaths:["src/main.js","src/api.js","src/db.js","tools/orphan.py"],relations:[{from:"src/main.js",to:"src/api.js"},{from:"src/main.js",to:"src/db.js"},{from:"src/api.js",to:"src/db.js"}]});
+ assert.ok(result.entryCandidates.some(node=>node.path==="src/main.js"));
+ assert.ok(result.hubs.some(node=>node.path==="src/main.js"));
+ assert.deepEqual(result.isolated.map(node=>node.path),["tools/orphan.py"]);
+ assert.equal(result.resolvedLinks,3);
+ assert.ok(result.modules.some(module=>module.name==="src"&&module.files===3));
+});
+
+test("analyzeArchitecture detects multi-file cycles and self loops",()=>{
+ const result=analyzeArchitecture({sampledSourcePaths:["a.js","b.js","c.js","self.js","free.js"],relations:[{from:"a.js",to:"b.js"},{from:"b.js",to:"c.js"},{from:"c.js",to:"a.js"},{from:"self.js",to:"self.js"}]});
+ assert.deepEqual(result.cycles.map(group=>group.length).sort(),[1,3]);
+ assert.ok(result.cycleFiles.has("a.js"));
+ assert.ok(result.cycleFiles.has("self.js"));
+ assert.equal(result.cycles.length,2);
+});
+
+test("analyzeArchitecture ignores links outside the sampled graph",()=>{
+ const result=analyzeArchitecture({sampledSourcePaths:["src/a.js"],relations:[{from:"src/a.js",to:"vendor/pkg.js"}]});
+ assert.equal(result.resolvedLinks,0);
+ assert.equal(result.isolated.length,1);
 });
