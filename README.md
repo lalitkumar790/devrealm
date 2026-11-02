@@ -1,67 +1,48 @@
 # DevRealm
 
-**Turn your GitHub activity into a living developer universe.**
+**A living 3D universe generated from your public GitHub work.**
 
-DevRealm is an interactive visualization of a developer's public work. Repositories become places to explore, programming languages shape the world, and project metadata gives each world its own character.
+DevRealm turns repositories into explorable planets and groups them into systems. Programming languages influence planetary palettes and terrain; repository topics and shared languages create constellation links; recent repository updates add activity signals.
 
-> Early prototype: this repository is the foundation of DevRealm. The first milestone focuses on a fast, dependency-light world explorer that runs locally and can be deployed as a static site.
+## Current experience
 
-## Current prototype
-
-- Search any public GitHub username.
-- Fetch public profile and repository metadata using GitHub's public REST API.
-- Generate a procedural world from the repositories and their primary languages.
-- Inspect repositories, open their GitHub pages, and explore the technology distribution.
-- Search and filter repositories by a transparent activity estimate: active (updated within 30 days), cooling (31–180 days), dormant (over 180 days). Unknown dates remain unclassified.
-- Pan and zoom the map; use a sample world without an API key.
-- Responsive interface with accessible controls and reduced-motion support.
+- Full-screen Three.js universe with orbit, zoom, starfield, atmospheric lighting and subtle nebulae.
+- Procedurally displaced, vertex-coloured planetary surfaces. Language families use distinct terrain palettes.
+- Repository systems are spatially clustered; shared languages and topics form constellation links.
+- Planets have atmospheres, drifting cloud shells, orbital rings, moons and labels.
+- Click a planet to inspect its repository and smoothly travel toward it. Reset returns to galaxy view.
+- Active repository metadata adds a visual activity halo.
+- Search any public GitHub username; sample universe works without credentials.
+- Minimal in-world HUD keeps the 3D scene central.
 
 ## Run locally
 
-No build step or package installation is required.
+The app is a static site using browser ES modules and Three.js from jsDelivr. No build step is required.
 
 ```bash
 python -m http.server 8000
 ```
 
-Open http://localhost:8000.
+Open http://localhost:8000. WebGL and network access to jsDelivr and api.github.com are required.
 
-You can also open `index.html` directly, though some browsers restrict network requests from local files.
+## Data and limitations
 
-## Data and privacy
-
-The prototype reads public GitHub profile and repository data from `api.github.com`. It does not request a personal access token, store credentials, or send profile data to a DevRealm server. GitHub's unauthenticated API rate limits apply. The journey panel samples up to eight recent authored commits from each of the six most-starred repositories returned by the profile query; it is not a complete contribution calendar. Private repositories and private contribution data are not accessed.
+DevRealm reads public GitHub profile and repository metadata from the GitHub REST API. It does not request a personal access token or send data to a DevRealm backend. Unauthenticated API limits apply. The activity indicator uses repository `updated_at` metadata, not a full contribution graph. The recent-commit signal samples up to eight authored commits from each of the six most-starred repositories returned by the profile query. Private repositories and private contribution data are not accessed.
 
 ## Roadmap
 
-- [x] Procedural world renderer and sample dataset
-- [x] Public GitHub profile/repository lookup
-- [x] Repository inspection and language breakdown
-- [x] Recent authored-commit timeline (sampled across up to six repositories)
-- [ ] Full contribution history and time-travel timeline
-- [x] Lightweight repository constellations from shared language and topic metadata
-- [x] Repository search and activity-state filters (metadata-based heuristic)
+- [x] Interactive Three.js galaxy with orbit and zoom
+- [x] Procedural language-coloured planetary terrain
+- [x] Repository systems, moons, atmospheres and constellation links
+- [x] Smooth focus travel and galaxy reset
+- [x] Public GitHub profile and repository lookup
+- [x] Repository inspection and activity metadata
+- [ ] Deep-dive mode: enter a repository and explore modules, folders and dependencies
+- [ ] Time-lapse universe driven by repository history
+- [ ] Rich biome rules from languages, topics and project metadata
 - [ ] Shareable world snapshots
-- [ ] Multiple source providers (GitLab, Codeberg, local Git)
-- [x] Zero-dependency Node test suite for world generation and hit testing
-- [x] GitHub Actions workflow for automated unit tests
-- [ ] Browser integration tests and deployment workflow
-
-## Project structure
-
-```
-.
-├── index.html
-├── styles.css
-├── package.json
-├── src/
-│   ├── app.js
-│   ├── data.js
-│   ├── github.js
-│   ├── world.js
-│   └── world.test.js
-└── README.md
-```
+- [ ] GitLab, Codeberg and local Git providers
+- [ ] Browser integration and visual regression tests
 
 ## License
 
