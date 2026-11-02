@@ -152,14 +152,14 @@ export function traceDependencies(analysis = {}, targetPath = "") {
 export function analyzeSymbols(sourceFiles = []) {
  const definitions=new Map();
  const patterns=[
-  {kind:"function",re:/\\b(?:export\\s+)?(?:async\\s+)?function\\s+([A-Za-z_$][\\w$]*)/g},
-  {kind:"class",re:/\\b(?:export\\s+)?class\\s+([A-Za-z_$][\\w$]*)/g},
-  {kind:"function",re:/\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*(?:async\\s*)?(?:function\\b|\\([^)]*\\)\\s*=>|[A-Za-z_$][\\w$]*\\s*=>)/g},
-  {kind:"class",re:/\\b(?:class|struct|trait|interface|enum)\\s+([A-Za-z_$][\\w$]*)/g},
-  {kind:"function",re:/\\b(?:def|fn|func)\\s+([A-Za-z_$][\\w$]*)/g}
+  {kind:"function",re:/\b(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g},
+  {kind:"class",re:/\b(?:export\s+)?class\s+([A-Za-z_$][\w$]*)/g},
+  {kind:"function",re:/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)/g},
+  {kind:"class",re:/\b(?:class|struct|trait|interface|enum)\s+([A-Za-z_$][\w$]*)/g},
+  {kind:"function",re:/\b(?:def|fn|func)\s+([A-Za-z_$][\w$]*)/g}
  ];
- for(const file of sourceFiles){for(const pattern of patterns){pattern.re.lastIndex=0;let match;while((match=pattern.re.exec(file.source||""))){const name=match[1];if(!definitions.has(name))definitions.set(name,{name,kind:pattern.kind,definition:{path:file.path,line:(file.source.slice(0,match.index).match(/\\n/g)||[]).length+1},references:[]});}}}
+ for(const file of sourceFiles){for(const pattern of patterns){pattern.re.lastIndex=0;let match;while((match=pattern.re.exec(file.source||""))){const name=match[1];if(!definitions.has(name))definitions.set(name,{name,kind:pattern.kind,definition:{path:file.path,line:(file.source.slice(0,match.index).match(/\n/g)||[]).length+1},references:[]});}}}
  const symbols=[...definitions.values()];
- for(const symbol of symbols){const escaped=symbol.name.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&");const re=new RegExp("\\b"+escaped+"\\b","g");for(const file of sourceFiles){if(file.path===symbol.definition.path)continue;re.lastIndex=0;let match;while((match=re.exec(file.source||""))){const line=(file.source.slice(0,match.index).match(/\\n/g)||[]).length+1;if(!symbol.references.some(ref=>ref.path===file.path&&ref.line===line))symbol.references.push({path:file.path,line});}}}
+ for(const symbol of symbols){const re=new RegExp("\\b"+symbol.name+"\\b","g");for(const file of sourceFiles){if(file.path===symbol.definition.path)continue;re.lastIndex=0;let match;while((match=re.exec(file.source||""))){const line=(file.source.slice(0,match.index).match(/\n/g)||[]).length+1;if(!symbol.references.some(ref=>ref.path===file.path&&ref.line===line))symbol.references.push({path:file.path,line});}}}
  return symbols.map(symbol=>({...symbol,referenceCount:symbol.references.length})).sort((a,b)=>b.referenceCount-a.referenceCount||a.name.localeCompare(b.name));
 }
