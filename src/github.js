@@ -73,3 +73,12 @@ export async function fetchRepositoryHistory(repo, limit=30) {
   const commits=await request("/repos/"+encodeURIComponent(owner)+"/"+encodeURIComponent(repo.name)+"/commits?per_page="+Math.min(50,Math.max(1,limit)));
   return commits.map(item=>({sha:item.sha,tree:item.commit?.tree?.sha,date:item.commit?.author?.date||item.commit?.committer?.date,message:item.commit?.message?.split("\n")[0]||"Commit",url:item.html_url})).filter(item=>item.tree&&item.date);
 }
+
+export async function fetchRepositorySymbols(repo, tree) {
+ const owner=repo.owner?.login;
+ if(!owner)throw new Error("Repository owner information is unavailable.");
+ const paths=tree.sampledSourcePaths||[],files=tree.files||[];
+ const selected=paths.map(path=>files.find(file=>file.path===path)).filter(Boolean);
+ const results=await Promise.all(selected.map(async file=>{try{return {path:file.path,source:await fetchRepositoryFile(repo,file)};}catch{return null;}}));
+ return (await import("./repository.js")).analyzeSymbols(results.filter(Boolean));
+}
