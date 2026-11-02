@@ -24,7 +24,7 @@ export function extractImportSpecifiers(source="",filePath="") {
   /(?:import|export)\s+(?:[^;]*?\s+from\s*)?["']([^"']+)["']/g,
   /require\(\s*["']([^"']+)["']\s*\)/g,
   /(?:^|\n)\s*from\s+([.\w]+)\s+import\s+/g,
-  /(?:^|\n)\s*import\s+([.\w]+)/g,
+  /(?:^|\n)\s*import\s+([.\w]+)\s*(?=$|,|\n)/g,
   /(?:^|\n)\s*use\s+((?:crate|self|super)::[\w:]+)[;{]/g,
   /(?:^|\n)\s*import\s*\(?\s*["']([^"']+)["']/g,
   /(?:^|\n)\s*import\s+([\w.]+);/g
@@ -44,8 +44,8 @@ export function resolveImportPath(fromPath,specifier,knownPaths=[]){
  const stem=raw.replace(/\.py$/,"").replace(/\.java$/,"").replace(/\.rs$/,"");
  const candidates=[raw,stem,stem+".js",stem+".jsx",stem+".ts",stem+".tsx",stem+".mjs",stem+".cjs",stem+".py",stem+"/__init__.py",stem+".rs",stem+"/mod.rs",stem+".java",stem+"/index.js",stem+"/index.ts",stem+"/index.tsx"];
  const match=candidates.find(path=>known.has(path));if(match)return match;
- const suffix=stem.split("/").slice(-2).join("/");
- return knownPaths.find(path=>(path.startsWith(stem+"/")||path.endsWith("/"+suffix+"/index.go")||path.endsWith("/"+suffix+".go"))&&/\.(go|rs|py|java)$/.test(path))||null;
+ const suffix=specifier.split("/").slice(-2).join("/");
+ return knownPaths.find(path=>(path.startsWith(stem+"/")||path.includes("/"+suffix+"/")||path.endsWith("/"+suffix+".go"))&&/\.(go|rs|py|java)$/.test(path))||null;
 }
 
 export function compareTrees(before,after){
