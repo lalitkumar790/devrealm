@@ -40,9 +40,9 @@ export async function fetchRecentCommits(username, repositories) {
   return batches.flat().sort((a,b)=>new Date(b.date)-new Date(a.date));
 }
 
-export async function fetchRepositoryTree(repo) {
+export async function fetchRepositoryTree(repo, revision = repo.default_branch) {
   const owner=repo.owner?.login;
-  const branch=repo.default_branch;
+  const branch=revision;
   if(!owner || !branch) throw new Error("This repository has no accessible default branch.");
   const tree=await request(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
   const repositoryTools=await import("./repository.js");
@@ -65,4 +65,11 @@ export async function fetchRepositoryFile(repo,file) {
   const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));
   if(bytes.some(byte=>byte===0)) throw new Error("This appears to be a binary file. Open it on GitHub instead.");
   return new TextDecoder("utf-8",{fatal:false}).decode(bytes);
+}
+
+export async function fetchRepositoryHistory(repo, limit=30) {
+  const owner=repo.owner?.login;
+  if(!owner) throw new Error("Repository owner information is unavailable.");
+  const commits=await request("/repos/"+encodeURIComponent(owner)+"/"+encodeURIComponent(repo.name)+"/commits?per_page="+Math.min(50,Math.max(1,limit)));
+  return commits.map(item=>({sha:item.sha,tree:item.commit?.tree?.sha,date:item.commit?.author?.date||item.commit?.committer?.date,message:item.commit?.message?.split("\n")[0]||"Commit",url:item.html_url})).filter(item=>item.tree&&item.date);
 }
