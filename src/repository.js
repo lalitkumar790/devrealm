@@ -18,14 +18,33 @@ export function childrenAt(analysis,path="") {
  return {directories,files};
 }
 export function moduleForPath(path){const parts=path.split("/");return parts.length>1?parts[0]:"root";}
-export function extractImportSpecifiers(source="") {
+export function extractImportSpecifiers(source="",filePath="") {
  const found=new Set();
- const patterns=[/(?:import|export)\s+(?:[^;]*?\s+from\s*)?["']([^"']+)["']/g,/require\(\s*["']([^"']+)["']\s*\)/g];
- for(const pattern of patterns){let match;while((match=pattern.exec(source)))if(match[1].startsWith("."))found.add(match[1]);}
+ const patterns=[
+  /(?:import|export)\s+(?:[^;]*?\s+from\s*)?["']([^"']+)["']/g,
+  /require\(\s*["']([^"']+)["']\s*\)/g,
+  /(?:^|\n)\s*from\s+([.\w]+)\s+import\s+/g,
+  /(?:^|\n)\s*import\s+([.\w]+)/g,
+  /(?:^|\n)\s*use\s+((?:crate|self|super)::[\w:]+)[;{]/g,
+  /(?:^|\n)\s*import\s+([\w.]+);/g
+ ];
+ for(let i=0;i<patterns.length;i++){let match;while((match=patterns[i].exec(source))){const value=match[1];if(value.startsWith(".")||i>=2)found.add(value);}}
  return [...found];
 }
 
-export function resolveImportPath(fromPath,specifier,knownPaths=[]){const base=fromPath.split("/").slice(0,-1);for(const part of specifier.split("/")){if(!part||part===".")continue;if(part==="..")base.pop();else base.push(part);}const stem=base.join("/");const candidates=[stem,stem+".js",stem+".jsx",stem+".ts",stem+".tsx",stem+".mjs",stem+".cjs",stem+"/index.js",stem+"/index.ts",stem+"/index.tsx"];return candidates.find(path=>knownPaths.includes(path))||null;}
+export function resolveImportPath(fromPath,specifier,knownPaths=[]){
+ const known=new Set(knownPaths),base=fromPath.split("/").slice(0,-1);
+ let raw=specifier;
+ if(raw.startsWith("crate::"))raw="src/"+raw.slice(7).replace(/::/g,"/");
+ else if(raw.startsWith("self::"))raw=base.concat(raw.slice(6).split("::")).join("/");
+ else if(raw.startsWith("super::"))raw=base.slice(0,-1).concat(raw.slice(7).split("::")).join("/");
+ else if(raw.startsWith(".")){for(const part of raw.split("/")){if(!part||part===".")continue;if(part==="..")base.pop();else base.push(part);}raw=base.join("/");}
+ else raw=raw.replace(/^\./,"").replace(/\./g,"/");
+ const stem=raw.replace(/\.py$/,"").replace(/\.java$/,"").replace(/\.rs$/,"");
+ const candidates=[raw,stem,stem+".js",stem+".jsx",stem+".ts",stem+".tsx",stem+".mjs",stem+".cjs",stem+".py",stem+"/__init__.py",stem+".rs",stem+"/mod.rs",stem+".java",stem+"/index.js",stem+"/index.ts",stem+"/index.tsx"];
+ const match=candidates.find(path=>known.has(path));if(match)return match;
+ return knownPaths.find(path=>path.startsWith(stem+"/")&&/\.(go|rs|py|java)$/.test(path))||null;
+}
 
 export function compareTrees(before,after){
  const oldFiles=new Map((before.files||[]).map(file=>[file.path,file]));
