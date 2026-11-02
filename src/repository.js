@@ -45,7 +45,7 @@ export function resolveImportPath(fromPath,specifier,knownPaths=[]){
  const candidates=[raw,stem,stem+".js",stem+".jsx",stem+".ts",stem+".tsx",stem+".mjs",stem+".cjs",stem+".py",stem+"/__init__.py",stem+".rs",stem+"/mod.rs",stem+".java",stem+"/index.js",stem+"/index.ts",stem+"/index.tsx"];
  const match=candidates.find(path=>known.has(path));if(match)return match;
  const suffix=specifier.split("/").slice(-2).join("/");
- return knownPaths.find(path=>(path.startsWith(stem+"/")||path.includes("/"+suffix+"/")||path.endsWith("/"+suffix+".go"))&&/\.(go|rs|py|java)$/.test(path))||null;
+ return knownPaths.find(path=>(path.startsWith(stem+"/")||path.startsWith(suffix+"/")||path.includes("/"+suffix+"/")||path.endsWith("/"+suffix+".go"))&&/\.(go|rs|py|java)$/.test(path))||null;
 }
 
 export function compareTrees(before,after){
