@@ -60,7 +60,7 @@ export function compareTrees(before,after){
 
 export function createLineDiff(beforeText="",afterText="",options={}){
  const maxLines=options.maxLines||1200,maxCells=options.maxCells||1440000,maxOutput=options.maxOutput||500;
- const oldLines=beforeText.replace(/\\r\\n/g,"\\n").split("\\n"),newLines=afterText.replace(/\\r\\n/g,"\\n").split("\\n");
+ const oldLines=beforeText.replace(/\r\n/g,"\n").split("\n"),newLines=afterText.replace(/\r\n/g,"\n").split("\n");
  let prefix=0;while(prefix<oldLines.length&&prefix<newLines.length&&oldLines[prefix]===newLines[prefix])prefix++;
  let suffix=0;while(suffix<oldLines.length-prefix&&suffix<newLines.length-prefix&&oldLines[oldLines.length-1-suffix]===newLines[newLines.length-1-suffix])suffix++;
  const a=oldLines.slice(prefix,oldLines.length-suffix),b=newLines.slice(prefix,newLines.length-suffix);
