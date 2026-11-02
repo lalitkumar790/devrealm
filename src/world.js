@@ -23,7 +23,18 @@ export function createWorld(repositories, login="developer") {
       size:Math.max(7,Math.min(18,8+Math.log2((repo.stargazers_count||0)+1)*1.1)),color:LANGUAGE_COLORS[language]||LANGUAGE_COLORS.Other,
       seed:rand(),isLandmark:index<3};
   });
-  return {points,seed:hash(login),radius:Math.max(350,Math.sqrt(points.length)*170)};
+  const links=[];
+  for(let i=0;i<points.length;i++){
+    for(let j=i+1;j<points.length;j++){
+      const a=points[i],b=points[j],distance=Math.hypot(a.x-b.x,a.y-b.y);
+      if(distance>285)continue;
+      const sameLanguage=(a.repo.language||"Other")===(b.repo.language||"Other");
+      const aTopics=new Set(a.repo.topics||[]);
+      const sharedTopic=(b.repo.topics||[]).some(topic=>aTopics.has(topic));
+      if((sameLanguage||sharedTopic)&&links.length<140)links.push({from:i,to:j,kind:sharedTopic?"topic":"language"});
+    }
+  }
+  return {points,links,seed:hash(login),radius:Math.max(350,Math.sqrt(points.length)*170)};
 }
 
 function path(ctx, points) {
@@ -50,6 +61,13 @@ export function drawWorld(ctx,width,height,world,view,selectedId) {
   ctx.save();ctx.translate(width/2+view.x,height/2+view.y);ctx.scale(view.zoom,view.zoom);
   ctx.strokeStyle="#192e38";ctx.lineWidth=1/view.zoom;ctx.setLineDash([2,8]);
   for(let r=130;r<world.radius*1.5;r+=130){ctx.beginPath();ctx.ellipse(0,0,r,r*.69,0,0,TAU);ctx.stroke();}
+  ctx.setLineDash([]);
+  for(const link of world.links||[]){
+    const a=world.points[link.from],b=world.points[link.to];
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle=link.kind==="topic"?"#9df0d044":"#7894a033";
+    ctx.lineWidth=link.kind==="topic"?1.3:0.8;ctx.setLineDash(link.kind==="topic"?[3,4]:[1,7]);ctx.stroke();
+  }
   ctx.setLineDash([]);
   for(let i=0;i<world.points.length;i++){const p=world.points[i];drawIsland(ctx,p.x,p.y,25+p.size*1.7,p.color,world.seed+i);}
   for(const p of world.points){
