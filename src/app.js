@@ -46,7 +46,7 @@ $("view-diff").addEventListener("click",async()=>{
   const [beforeText,afterText]=await Promise.all([fetchRepositoryFile(repo,entry.before),fetchRepositoryFile(repo,entry.after)]);
   const diff=createLineDiff(beforeText,afterText);
   if(diff.truncated&&diff.lines.length===0){$("source-code").textContent=diff.reason;$("source-meta").textContent=diff.oldLineCount+" old lines · "+diff.newLineCount+" new lines";return;}
-  $("source-code").textContent=diff.lines.map(line=>(line.type==="added"?"+ ":line.type==="removed"?"− ":"  ")+String(line.oldLine??"").padStart(4," ")+" "+String(line.newLine??"").padStart(4," ")+" │ "+line.line).join("\\n");
+  $("source-code").textContent=diff.lines.map(line=>(line.type==="added"?"+ ":line.type==="removed"?"− ":"  ")+String(line.oldLine??"").padStart(4," ")+" "+String(line.newLine??"").padStart(4," ")+" │ "+line.line).join("\n");
   $("source-meta").textContent="+"+diff.added+" added · −"+diff.removed+" removed · "+diff.oldLineCount+" old / "+diff.newLineCount+" new lines"+(diff.truncated?" · output capped":"");
  }catch(error){$("source-code").textContent=error.message;$("source-meta").textContent="Revision diff unavailable";}
  finally{button.disabled=false;button.textContent="VIEW REVISION DIFF ↗";}
