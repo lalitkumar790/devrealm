@@ -42,6 +42,7 @@ The prototype reads public GitHub profile and repository data from `api.github.c
 - [ ] Shareable world snapshots
 - [ ] Multiple source providers (GitLab, Codeberg, local Git)
 - [x] Zero-dependency Node test suite for world generation and hit testing
+- [x] GitHub Actions workflow for automated unit tests
 - [ ] Browser integration tests and deployment workflow
 
 ## Project structure
@@ -55,7 +56,8 @@ The prototype reads public GitHub profile and repository data from `api.github.c
 │   ├── app.js
 │   ├── data.js
 │   ├── github.js
-│   └── world.js
+│   ├── world.js
+│   └── world.test.js
 └── README.md
 ```
 
