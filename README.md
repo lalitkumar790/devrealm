@@ -38,7 +38,7 @@ The prototype reads public GitHub profile and repository data from `api.github.c
 - [x] Repository inspection and language breakdown
 - [x] Recent authored-commit timeline (sampled across up to six repositories)
 - [ ] Full contribution history and time-travel timeline
-- [ ] Repository relationships and dependency constellations
+- [x] Lightweight repository constellations from shared language and topic metadata
 - [ ] Shareable world snapshots
 - [ ] Multiple source providers (GitLab, Codeberg, local Git)
 - [x] Zero-dependency Node test suite for world generation and hit testing
