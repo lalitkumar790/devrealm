@@ -29,18 +29,20 @@ You can also open `index.html` directly, though some browsers restrict network r
 
 ## Data and privacy
 
-The prototype reads public GitHub profile and repository data from `api.github.com`. It does not request a personal access token, store credentials, or send profile data to a DevRealm server. GitHub's unauthenticated API rate limits apply. Private repositories and private contribution data are not accessed.
+The prototype reads public GitHub profile and repository data from `api.github.com`. It does not request a personal access token, store credentials, or send profile data to a DevRealm server. GitHub's unauthenticated API rate limits apply. The journey panel samples up to eight recent authored commits from each of the six most-starred repositories returned by the profile query; it is not a complete contribution calendar. Private repositories and private contribution data are not accessed.
 
 ## Roadmap
 
 - [x] Procedural world renderer and sample dataset
 - [x] Public GitHub profile/repository lookup
 - [x] Repository inspection and language breakdown
-- [ ] Contribution history and time-travel timeline
+- [x] Recent authored-commit timeline (sampled across up to six repositories)
+- [ ] Full contribution history and time-travel timeline
 - [ ] Repository relationships and dependency constellations
 - [ ] Shareable world snapshots
 - [ ] Multiple source providers (GitLab, Codeberg, local Git)
-- [ ] Automated tests and deployment workflow
+- [x] Zero-dependency Node test suite for world generation and hit testing
+- [ ] Browser integration tests and deployment workflow
 
 ## Project structure
 
@@ -48,6 +50,7 @@ The prototype reads public GitHub profile and repository data from `api.github.c
 .
 ├── index.html
 ├── styles.css
+├── package.json
 ├── src/
 │   ├── app.js
 │   ├── data.js
