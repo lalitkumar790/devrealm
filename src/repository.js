@@ -24,3 +24,5 @@ export function extractImportSpecifiers(source="") {
  for(const pattern of patterns){let match;while((match=pattern.exec(source)))if(match[1].startsWith("."))found.add(match[1]);}
  return [...found];
 }
+
+export function resolveImportPath(fromPath,specifier,knownPaths=[]){const base=fromPath.split("/").slice(0,-1);for(const part of specifier.split("/")){if(!part||part===".")continue;if(part==="..")base.pop();else base.push(part);}const stem=base.join("/");const candidates=[stem,stem+".js",stem+".jsx",stem+".ts",stem+".tsx",stem+".mjs",stem+".cjs",stem+"/index.js",stem+"/index.ts",stem+"/index.tsx"];return candidates.find(path=>knownPaths.includes(path))||null;}
