@@ -47,7 +47,7 @@ export async function fetchRepositoryTree(repo, revision = repo.default_branch, 
   const tree=await request(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
   const repositoryTools=await import("./repository.js");
   const analysis=repositoryTools.analyzeTree(tree.tree||[]);
-  const sourceFiles=includeRelations?analysis.files.filter(file=>file.sha&&/\.(js|jsx|ts|tsx|mjs|cjs|py|rs|go|java)$/.test(file.path)).slice(0,24):[];
+  const sourceFiles=includeRelations?analysis.files.filter(file=>file.sha&&(file.size||0)<=80000&&/\.(js|jsx|ts|tsx|mjs|cjs|py|rs|go|java)$/.test(file.path)).slice(0,24):[];
   const knownPaths=analysis.files.map(file=>file.path);
   const relationBatches=await Promise.all(sourceFiles.map(async file=>{try{const blob=await request("/repos/"+encodeURIComponent(owner)+"/"+encodeURIComponent(repo.name)+"/git/blobs/"+file.sha);const binary=atob((blob.content||"").replace(/\s/g,""));const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));const source=new TextDecoder().decode(bytes);return repositoryTools.extractImportSpecifiers(source,file.path).map(specifier=>({from:file.path,to:repositoryTools.resolveImportPath(file.path,specifier,knownPaths),specifier,language:(file.path.split(".").pop()||"").toLowerCase()})).filter(link=>link.to);}catch{return [];}}));
   const relations=relationBatches.flat();
