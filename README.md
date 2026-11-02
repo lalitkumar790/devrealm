@@ -12,6 +12,7 @@ DevRealm is an interactive visualization of a developer's public work. Repositor
 - Fetch public profile and repository metadata using GitHub's public REST API.
 - Generate a procedural world from the repositories and their primary languages.
 - Inspect repositories, open their GitHub pages, and explore the technology distribution.
+- Search and filter repositories by a transparent activity estimate: active (updated within 30 days), cooling (31–180 days), dormant (over 180 days). Unknown dates remain unclassified.
 - Pan and zoom the map; use a sample world without an API key.
 - Responsive interface with accessible controls and reduced-motion support.
 
@@ -39,6 +40,7 @@ The prototype reads public GitHub profile and repository data from `api.github.c
 - [x] Recent authored-commit timeline (sampled across up to six repositories)
 - [ ] Full contribution history and time-travel timeline
 - [x] Lightweight repository constellations from shared language and topic metadata
+- [x] Repository search and activity-state filters (metadata-based heuristic)
 - [ ] Shareable world snapshots
 - [ ] Multiple source providers (GitLab, Codeberg, local Git)
 - [x] Zero-dependency Node test suite for world generation and hit testing
