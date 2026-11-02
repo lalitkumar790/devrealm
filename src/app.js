@@ -5,11 +5,11 @@ const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat().format(n|
 let profile=SAMPLE_PROFILE,repositories=SAMPLE_REPOS,universe;
 function pulse(repo){const age=repo.updated_at?Math.max(0,(Date.now()-new Date(repo.updated_at).getTime())/86400000):9999;return age<=30?"ACTIVE":age<=180?"COOLING":"DORMANT";}
 function showRepo(repo,node){
- window.selectedRepository=repo;
+ window.selectedRepository=repo;window.selectedNode=node||null;
  const color=LANGUAGE_COLORS[repo.language||"Other"]||LANGUAGE_COLORS.Other;
  $("detail-name").textContent=node?node.name:repo.name;
  $("detail-description").textContent=node?(node.type==="directory"?node.path+" · "+node.files+" files · "+node.sourceFiles+" source files":node.path+" · "+fmt(node.size)+" bytes"):repo.description||"No public description for this repository.";
- $("enter-repository").hidden=Boolean(node);$("exit-repository").hidden=!node;
+ $("enter-repository").hidden=Boolean(node);$("exit-repository").hidden=!node;$("enter-folder").hidden=!(node&&node.type==="directory");$("up-folder").hidden=!(node&&node.type==="directory"&&node.path.includes("/"));
  $("planet-swatch").style.background="radial-gradient(circle at 32% 28%,#fff,"+color+" 17%,#183747 53%,#050b14 80%)";
  $("planet-swatch").style.boxShadow="0 0 38px "+color+"66,inset -10px -8px 16px #0009";
  $("detail-tags").innerHTML=node?"<span>"+node.type.toUpperCase()+"</span><span>"+node.path.split("/").length+" LEVEL</span>":[repo.language||"Other",pulse(repo)].map(x=>"<span>"+x+"</span>").join("");
@@ -26,5 +26,7 @@ $("search-form").addEventListener("submit",e=>{e.preventDefault();load($("userna
 $("close-inspector").addEventListener("click",()=>$("inspector").classList.remove("open"));
 $("enter-repository").addEventListener("click",async()=>{const repo=window.selectedRepository;if(!repo)return;$("status").textContent="Reading repository tree…";$("enter-repository").disabled=true;try{const tree=await fetchRepositoryTree(repo);universe.enterRepository(repo,tree);$("status").textContent="Repository interior · "+tree.totalFiles+" files · "+tree.sourceCount+" source files"+(tree.truncated?" · GitHub tree truncated":"");$("world-title").textContent=repo.name.toUpperCase()+" / INTERIOR";$("world-subtitle").textContent=tree.branch+" · "+tree.directories.length+" directories · "+Object.keys(tree.extensionCounts).length+" file types";$("inspector").classList.remove("open");}catch(error){$("status").textContent=error.message;}finally{$("enter-repository").disabled=false;}});
 $("exit-repository").addEventListener("click",()=>{universe.exitRepository();renderProfile();$("inspector").classList.remove("open");});
+$("enter-folder").addEventListener("click",()=>{const node=window.selectedNode;if(!node||node.type!=="directory")return;universe.enterDirectory(node.path);$("world-title").textContent=node.name.toUpperCase()+" / REGION";$("world-subtitle").textContent=node.path+" · "+node.files+" files · "+node.sourceFiles+" source files";$("inspector").classList.remove("open");});
+$("up-folder").addEventListener("click",()=>{universe.goUpDirectory();const path=(window.selectedNode?.path||"").split("/").slice(0,-1).join("/");$("world-title").textContent=path?path.split("/").pop().toUpperCase()+" / REGION":window.selectedRepository.name.toUpperCase()+" / INTERIOR";$("world-subtitle").textContent=path||"Repository root";$("inspector").classList.remove("open");});
 $("reset-view").addEventListener("click",()=>universe.reset());let paused=false;$("toggle-motion").addEventListener("click",()=>{paused=!paused;universe.pause(paused);$("toggle-motion").textContent=paused?"▶ RESUME ORBIT":"Ⅱ PAUSE ORBIT";});
 universe=createUniverse($("world"),showRepo);universe.setRepositories(repositories,profile.login);renderProfile();
