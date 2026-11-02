@@ -34,3 +34,5 @@
 .architecture-panel{position:fixed;z-index:5;right:4vw;bottom:74px;width:min(310px,calc(100vw - 24px));max-height:55vh;overflow:auto;box-shadow:0 18px 60px #0009}.architecture-trigger{border:1px solid #79b9dc77!important;color:#b8e5f2!important}.architecture-trigger[hidden]{display:none}
 
 .architecture-legend{display:flex;flex-wrap:wrap;gap:9px;margin:9px 0 4px}.architecture-legend span{display:flex;align-items:center;gap:4px;color:#92a9b6;font:7px "DM Mono",monospace}.architecture-legend i{display:inline-block;width:7px;height:7px;border-radius:50%}.legend-entry{background:#62f5a9;box-shadow:0 0 7px #62f5a9}.legend-hub{background:#58c9ff;box-shadow:0 0 7px #58c9ff}.legend-cycle{background:#ff6f91;box-shadow:0 0 7px #ff6f91}.legend-isolated{background:#aab5c5}
+
+.dependency-tools{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px}.dependency-tools button{padding:8px 5px;border:1px solid #79b9dc55;background:#0b202a;color:#b8e5f2;font:7px "DM Mono",monospace;cursor:pointer}.dependency-tools button:hover{border-color:#a4f5d7;color:#a4f5d7}
