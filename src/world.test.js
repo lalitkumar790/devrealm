@@ -40,3 +40,15 @@ test("hit testing returns null when no marker is nearby", () => {
   const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }) };
   assert.equal(hitTest(canvas, world, { x: 0, y: 0, zoom: 1 }, 0, 0), null);
 });
+
+test("repository constellation links reflect shared language or topics", () => {
+  const related = [
+    { id: 10, name: "web-a", language: "TypeScript", topics: ["dashboard"] },
+    { id: 11, name: "web-b", language: "TypeScript", topics: ["dashboard"] },
+    { id: 12, name: "robotics", language: "Python", topics: ["robotics"] }
+  ];
+  const world = createWorld(related, "constellation-test");
+  assert.ok(Array.isArray(world.links));
+  assert.ok(world.links.some(link => link.kind === "language" || link.kind === "topic"));
+  assert.ok(world.links.every(link => link.from >= 0 && link.to < world.points.length));
+});
