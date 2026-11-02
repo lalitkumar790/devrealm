@@ -1,48 +1,37 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#03060d">
-<meta name="description" content="Step inside your GitHub universe.">
-<title>DevRealm — Enter your universe</title>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#03060d">
+<meta name="description" content="Explore your GitHub work as a living 3D universe."><title>DevRealm — Explore your code universe</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
-</head>
-<body>
-<div id="universe"><canvas id="world"></canvas></div>
-<div class="vignette"></div>
+</head><body>
+<div id="universe"><canvas id="world"></canvas></div><div class="vignette"></div>
 <header class="topbar">
- <a class="brand" href="#"><span class="brand-mark">✳</span> DEVREALM <small>IMMERSIVE UNIVERSE</small></a>
- <div class="top-meta"><span class="live-dot"></span> LIVE WORLD <span class="divider">/</span> PUBLIC GITHUB DATA</div>
+ <a class="brand" href="#"><span class="brand-mark">✳</span> DEVREALM <small>THE DEVELOPER UNIVERSE</small></a>
+ <div class="top-meta"><span class="live-dot"></span> SIMULATION ONLINE <span class="divider">/</span> GITHUB LINK ACTIVE</div>
  <a class="source" href="https://github.com/lalitkumar790/devrealm" target="_blank" rel="noreferrer">SOURCE ↗</a>
 </header>
 <main>
- <section class="hero">
-  <div class="eyebrow">YOUR DEVELOPER IDENTITY, REIMAGINED</div>
-  <h1>Enter your<br><em>universe.</em></h1>
-  <p>Every repository is a world. Every language, a different atmosphere. Your work is no longer a list — it's a place to explore.</p>
-  <form id="search-form"><span>@</span><input id="username" value="octocat" aria-label="GitHub username" autocomplete="off"><button id="generate">GENERATE WORLD ↗</button></form>
-  <div id="status">A sample universe is waiting. Enter any public GitHub username.</div>
+ <section class="hero command-panel">
+  <div class="eyebrow">UNIVERSE NAVIGATOR <span class="panel-coordinate">SYS / 01</span></div>
+  <form id="search-form"><span>@</span><input id="username" value="octocat" aria-label="GitHub username" autocomplete="off"><button id="generate">LOAD ↗</button></form>
+  <div id="status">Sample universe loaded · enter a GitHub username to travel.</div>
  </section>
  <section class="world-hud">
-  <div><span class="hud-label">CURRENT UNIVERSE</span><strong id="world-title">THE OCTOCAT EXPANSE</strong><small id="world-subtitle">@octocat · sample world</small></div>
-  <div class="hud-count"><strong id="repo-count">08</strong><span>WORLDS DISCOVERED</span></div>
+  <div><span class="hud-label">EXPLORING SYSTEM</span><strong id="world-title">THE OCTOCAT EXPANSE</strong><small id="world-subtitle">@octocat · sample world</small></div>
+  <div class="hud-count"><strong id="repo-count">08</strong><span>PLANETS MAPPED</span></div>
  </section>
  <aside class="inspector" id="inspector">
   <button class="close-inspector" id="close-inspector" aria-label="Close project details">×</button>
-  <div class="eyebrow">WORLD SIGNAL / SELECTED PLANET</div>
-  <div class="planet-swatch" id="planet-swatch"></div>
-  <h2 id="detail-name">Select a world</h2><p id="detail-description">Click a planet to inspect the repository behind it.</p>
+  <div class="eyebrow">SCAN RESULT / PLANET PROFILE</div><div class="planet-swatch" id="planet-swatch"></div>
+  <h2 id="detail-name">Select a planet</h2><p id="detail-description">Click a planet to inspect the repository behind it.</p>
   <div class="detail-tags" id="detail-tags"></div><div class="detail-facts" id="detail-facts"></div>
   <a id="detail-link" href="#" target="_blank" rel="noreferrer">OPEN REPOSITORY ↗</a>
  </aside>
  <nav class="bottom-dock">
-  <div class="dock-instructions"><span>DRAG</span> ORBIT <i></i><span>SCROLL</span> ZOOM <i></i><span>CLICK</span> EXPLORE</div>
-  <button id="reset-view">◎ RESET VIEW</button>
-  <button id="toggle-motion">Ⅱ PAUSE ORBIT</button>
+  <div class="dock-instructions"><span>DRAG</span> ORBIT <i></i><span>SCROLL</span> ZOOM <i></i><span>CLICK</span> SCAN PLANET</div>
+  <button id="reset-view">◎ GALAXY VIEW</button><button id="toggle-motion">Ⅱ PAUSE ORBIT</button>
  </nav>
-</main>
-<script type="module" src="./src/app.js"></script>
-</body></html>
+</main><script type="module" src="./src/app.js"></script></body></html>
