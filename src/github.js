@@ -28,7 +28,7 @@ export async function fetchRecentCommits(username, repositories) {
       const commits = await request(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/commits?author=${encodeURIComponent(username)}&per_page=8`);
       return commits.map(item => ({
         sha: item.sha,
-        message: item.commit?.message?.split("\\n")[0] || "Commit",
+        message: item.commit?.message?.split("\n")[0] || "Commit",
         date: item.commit?.author?.date || item.commit?.committer?.date,
         repo: repo.name,
         url: item.html_url
