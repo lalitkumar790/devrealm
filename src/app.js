@@ -1,4 +1,4 @@
-import { fetchDeveloper, fetchRecentCommits } from "./github.js";
+import { fetchDeveloper, fetchRecentCommits, fetchRepositoryTree } from "./github.js";
 import { SAMPLE_PROFILE, SAMPLE_REPOS, LANGUAGE_COLORS } from "./data.js";
 import { createUniverse } from "./scene3d.js";
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat().format(n||0);
