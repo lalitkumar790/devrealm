@@ -70,6 +70,26 @@ function drawInterior(path=""){
   interior.userData.fileMeshes=fileMeshes;\n  const relationPositions=[];(analysis.relations||[]).forEach(link=>{const from=fileMeshes.get(link.from),to=fileMeshes.get(link.to);if(from&&to){relationPositions.push(from.position.x,from.position.y,from.position.z,to.position.x,to.position.y,to.position.z);}});if(relationPositions.length){const edgeGeometry=new THREE.BufferGeometry();edgeGeometry.setAttribute("position",new THREE.Float32BufferAttribute(relationPositions,3));interior.add(new THREE.LineSegments(edgeGeometry,new THREE.LineBasicMaterial({color:0xe8b86d,transparent:true,opacity:.7})));}
   const d=Math.max(90,radius*2.8);camera.position.set(d*.15,d*.85,d*1.35);controls.target.set(0,0,0);controls.maxDistance=1200;controls.update();focusTarget=null;focusPosition=null;
 }
+
+function showDependencyTrace(trace,mode="trace"){
+ if(architectureOverlay){interior.remove(architectureOverlay);architectureOverlay.traverse(obj=>{obj.geometry?.dispose();if(obj.material)obj.material.dispose();});}
+ architectureOverlay=new THREE.Group();interior.add(architectureOverlay);
+ const meshes=interior.userData.fileMeshes||new Map(),up=new Set(trace.upstream||[]),down=new Set(trace.downstream||[]),target=trace.target;
+ const visible=new Set([target,...up,...down]);
+ for(const [path,mesh] of meshes){
+  const active=visible.has(path),isTarget=path===target,isUp=up.has(path);
+  mesh.material.transparent=true;mesh.material.opacity=active?1:.1;
+  if(active){mesh.material.emissive.setHex(isTarget?0xffdf83:isUp?0x62f5a9:0x58c9ff);mesh.material.emissiveIntensity=isTarget?1.8:1.15;}
+  if(active){
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(isTarget?3.2:2.5,.08,6,48),new THREE.MeshBasicMaterial({color:isTarget?0xffdf83:isUp?0x62f5a9:0x58c9ff,transparent:true,opacity:.95}));
+   ring.position.copy(mesh.position);ring.rotation.x=Math.PI/2;architectureOverlay.add(ring);
+  }
+ }
+ const edges=trace.links||[];
+ for(const edge of edges){const from=meshes.get(edge.from),to=meshes.get(edge.to);if(!from||!to)continue;const color=edge.to===target?0x62f5a9:edge.from===target?0x58c9ff:0x9baec0;const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([from.position.clone(),to.position.clone()]),new THREE.LineBasicMaterial({color,transparent:true,opacity:.95}));architectureOverlay.add(line);}
+ const selected=meshes.get(target);if(selected){const point=selected.getWorldPosition(new THREE.Vector3());focusTarget=point;const direction=new THREE.Vector3().subVectors(camera.position,controls.target).normalize();focusPosition=point.clone().add(direction.multiplyScalar(28));}
+ return visible.size;
+}
 function showArchitecture(result){
   if(architectureOverlay){interior.remove(architectureOverlay);architectureOverlay.traverse(obj=>{obj.geometry?.dispose();if(obj.material)obj.material.dispose();});}
   architectureOverlay=new THREE.Group();interior.add(architectureOverlay);
@@ -104,5 +124,5 @@ function enterRepository(repo,analysis,diff=null){interior.userData.repo=repo;in
 function enterDirectory(path){if(!interior.visible||!interior.userData.analysis)return;drawInterior(path);}
 function goUpDirectory(){const path=interior.userData.path||"";if(!path)return;enterDirectory(path.split("/").slice(0,-1).join("/"));}
 function exitRepository(){interior.visible=false;group.visible=true;core.visible=true;focusTarget=null;focusPosition=null;controls.target.set(0,0,0);const d=Math.max(260,Math.min(700,planetMeshes.length*10));camera.position.set(d*.08,d*.48,d);controls.update();}
- return {setRepositories,enterRepository,enterDirectory,goUpDirectory,exitRepository,showArchitecture,select(id){const p=planetMeshes.find(m=>String(m.userData.repo.id)===String(id));if(p)focus(p.userData.repo,p);},reset(){focusTarget=null;focusPosition=null;controls.target.set(0,0,0);const d=Math.max(260,Math.min(700,planetMeshes.length*10));camera.position.set(d*.08,d*.48,d);controls.update();},focusPath(path){const mesh=interior.userData.fileMeshes?.get(path);if(!mesh)return false;const target=mesh.getWorldPosition(new THREE.Vector3());focusTarget=target;const direction=new THREE.Vector3().subVectors(camera.position,controls.target).normalize();focusPosition=target.clone().add(direction.multiplyScalar(24));onSelect(interior.userData.repo,mesh.userData.node);return true;},pause(value){paused=value;controls.autoRotate=!value;}};
+ return {setRepositories,enterRepository,enterDirectory,goUpDirectory,exitRepository,showArchitecture,showDependencyTrace,select(id){const p=planetMeshes.find(m=>String(m.userData.repo.id)===String(id));if(p)focus(p.userData.repo,p);},reset(){focusTarget=null;focusPosition=null;controls.target.set(0,0,0);const d=Math.max(260,Math.min(700,planetMeshes.length*10));camera.position.set(d*.08,d*.48,d);controls.update();},focusPath(path){const mesh=interior.userData.fileMeshes?.get(path);if(!mesh)return false;const target=mesh.getWorldPosition(new THREE.Vector3());focusTarget=target;const direction=new THREE.Vector3().subVectors(camera.position,controls.target).normalize();focusPosition=target.clone().add(direction.multiplyScalar(24));onSelect(interior.userData.repo,mesh.userData.node);return true;},pause(value){paused=value;controls.autoRotate=!value;}};
 }
