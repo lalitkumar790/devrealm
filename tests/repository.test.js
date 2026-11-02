@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath } from "../src/repository.js";
+import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees } from "../src/repository.js";
 
 test("analyzeTree counts files, source files and directory contents", () => {
   const result = analyzeTree([
@@ -25,3 +25,5 @@ test("childrenAt returns only immediate folders and files",()=>{const tree=analy
 test("extractImportSpecifiers finds relative ES module and require references",()=>{const refs=extractImportSpecifiers(`import thing from "./thing.js";\nexport { value } from "../shared/value.js";\nconst x=require("./local");`);assert.deepEqual(refs,["./thing.js","../shared/value.js","./local"]);});
 
 test("resolveImportPath resolves relative extensionless and parent imports",()=>{const known=["src/main.js","src/lib/math.ts","shared/value.js"];assert.equal(resolveImportPath("src/main.js","./lib/math",known),"src/lib/math.ts");assert.equal(resolveImportPath("src/main.js","../shared/value.js",known),"shared/value.js");assert.equal(resolveImportPath("src/main.js","react",known),null);});
+
+test("compareTrees classifies added, deleted, modified and unchanged files",()=>{const before=analyzeTree([{path:"src/keep.js",type:"blob",size:10,sha:"same"},{path:"src/change.js",type:"blob",size:10,sha:"old"},{path:"gone.txt",type:"blob",size:2,sha:"gone"}]);const after=analyzeTree([{path:"src/keep.js",type:"blob",size:10,sha:"same"},{path:"src/change.js",type:"blob",size:12,sha:"new"},{path:"new.txt",type:"blob",size:3,sha:"new-file"},{path:"docs/guide.md",type:"blob",size:4,sha:"guide"}]);const diff=compareTrees(before,after);assert.deepEqual(diff.counts,{added:2,deleted:1,modified:1,unchanged:1,addedDirectories:1,deletedDirectories:0});assert.deepEqual(diff.added.map(file=>file.path).sort(),["docs/guide.md","new.txt"]);assert.equal(diff.deleted[0].path,"gone.txt");assert.equal(diff.modified[0].after.path,"src/change.js");});
