@@ -94,6 +94,7 @@ function showArchitecture(result){
   if(architectureOverlay){interior.remove(architectureOverlay);architectureOverlay.traverse(obj=>{obj.geometry?.dispose();if(obj.material)obj.material.dispose();});}
   architectureOverlay=new THREE.Group();interior.add(architectureOverlay);
   const fileMeshes=interior.userData.fileMeshes||new Map();
+  for(const mesh of fileMeshes.values()){mesh.material.transparent=false;mesh.material.opacity=1;mesh.material.emissiveIntensity=.45;}
   const categories=[
    {name:"ENTRY",paths:(result.entryCandidates||[]).map(item=>item.path),color:0x62f5a9},
    {name:"HUB",paths:(result.hubs||[]).map(item=>item.path),color:0x58c9ff},
