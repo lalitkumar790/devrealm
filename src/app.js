@@ -1,4 +1,4 @@
-import { fetchDeveloper, fetchRecentCommits, fetchRepositoryTree, fetchRepositoryFile } from "./github.js";
+import { fetchDeveloper, fetchRecentCommits, fetchRepositoryTree, fetchRepositoryFile, fetchRepositoryHistory } from "./github.js";
 import { SAMPLE_PROFILE, SAMPLE_REPOS, LANGUAGE_COLORS } from "./data.js";
 import { createUniverse } from "./scene3d.js";
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat().format(n||0);
@@ -9,7 +9,7 @@ function showRepo(repo,node){
  const color=LANGUAGE_COLORS[repo.language||"Other"]||LANGUAGE_COLORS.Other;
  $("detail-name").textContent=node?node.name:repo.name;
  $("detail-description").textContent=node?(node.type==="directory"?node.path+" · "+node.files+" files · "+node.sourceFiles+" source files":node.path+" · "+fmt(node.size)+" bytes"):repo.description||"No public description for this repository.";
- $("enter-repository").hidden=Boolean(node);$("exit-repository").hidden=!node;$("view-source").hidden=!(node&&node.type==="file");$("source-viewer").hidden=true;$("enter-folder").hidden=!(node&&node.type==="directory");$("up-folder").hidden=!currentFolderPath;
+ $("load-history").hidden=Boolean(node);$("history-panel").hidden=true;$("load-history").hidden=Boolean(node);$("history-panel").hidden=true;$("enter-repository").hidden=Boolean(node);$("exit-repository").hidden=!node;$("view-source").hidden=!(node&&node.type==="file");$("source-viewer").hidden=true;$("enter-folder").hidden=!(node&&node.type==="directory");$("up-folder").hidden=!currentFolderPath;
  $("planet-swatch").style.background="radial-gradient(circle at 32% 28%,#fff,"+color+" 17%,#183747 53%,#050b14 80%)";
  $("planet-swatch").style.boxShadow="0 0 38px "+color+"66,inset -10px -8px 16px #0009";
  $("detail-tags").innerHTML=node?"<span>"+node.type.toUpperCase()+"</span><span>"+node.path.split("/").length+" LEVEL</span>":[repo.language||"Other",pulse(repo)].map(x=>"<span>"+x+"</span>").join("");
@@ -24,6 +24,11 @@ async function load(username){
 }
 $("search-form").addEventListener("submit",e=>{e.preventDefault();load($("username").value.trim());});
 $("close-inspector").addEventListener("click",()=>$("inspector").classList.remove("open"));
+$("load-history").addEventListener("click",async()=>{const repo=window.selectedRepository;if(!repo)return;const button=$("load-history");button.disabled=true;button.textContent="LOADING HISTORY…";$("history-panel").hidden=false;$("history-status").textContent="Fetching recent commits…";try{window.repositoryHistory=await fetchRepositoryHistory(repo,30);const slider=$("history-slider");slider.min="0";slider.max=String(Math.max(0,window.repositoryHistory.length-1));slider.value=String(Math.max(0,window.repositoryHistory.length-1));slider.disabled=window.repositoryHistory.length===0;$("history-status").textContent=window.repositoryHistory.length+" revisions · newest to oldest";await showHistoricalRevision(Number(slider.value));}catch(error){$("history-status").textContent=error.message;}finally{button.disabled=false;button.textContent="RELOAD HISTORY";}});
+async function showHistoricalRevision(index){const history=window.repositoryHistory||[],item=history[index],repo=window.selectedRepository;if(!item||!repo)return;$("history-status").textContent="Reconstructing "+new Date(item.date).toLocaleDateString()+"…";$("history-message").textContent=item.message;$("history-date").textContent=new Date(item.date).toLocaleString();try{const tree=await fetchRepositoryTree(repo,item.tree);currentFolderPath="";universe.enterRepository(repo,tree);$("up-folder").hidden=true;$("world-title").textContent=repo.name.toUpperCase()+" / HISTORY";$("world-subtitle").textContent=new Date(item.date).toLocaleDateString()+" · "+tree.totalFiles+" files · "+tree.directories.length+" directories";$("history-status").textContent="Revision "+item.sha.slice(0,7)+" · "+tree.totalFiles+" files";$("history-link").href=item.url;}catch(error){$("history-status").textContent=error.message;}}
+$("history-slider").addEventListener("input",()=>{const slider=$("history-slider");$("history-index").textContent=(Number(slider.value)+1)+" / "+(window.repositoryHistory||[]).length;});
+$("history-slider").addEventListener("change",()=>showHistoricalRevision(Number($("history-slider").value)));
+
 $("view-source").addEventListener("click",async()=>{const repo=window.selectedRepository,file=window.selectedNode;if(!repo||!file||file.type!=="file")return;const button=$("view-source");button.disabled=true;button.textContent="FETCHING SOURCE…";$("source-viewer").hidden=false;$("source-path").textContent=file.path;$("source-code").textContent="Loading source from GitHub…";try{const source=await fetchRepositoryFile(repo,file);$("source-code").textContent=source||"(empty file)";$("source-meta").textContent=source.split("\n").length+" lines · "+new TextEncoder().encode(source).length+" bytes";}catch(error){$("source-code").textContent=error.message;$("source-meta").textContent="Preview unavailable";}finally{button.disabled=false;button.textContent="VIEW SOURCE CODE ↗";}});
 $("close-source").addEventListener("click",()=>$("source-viewer").hidden=true);
 
