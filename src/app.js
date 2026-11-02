@@ -1,114 +1,22 @@
-import { LANGUAGE_COLORS, SAMPLE_PROFILE, SAMPLE_REPOS } from "./data.js";
 import { fetchDeveloper, fetchRecentCommits } from "./github.js";
-import { createWorld, drawWorld, hitTest } from "./world.js";
-
-const $ = id => document.getElementById(id);
-const canvas=$("world"),ctx=canvas.getContext("2d");
-let profile=SAMPLE_PROFILE,repositories=SAMPLE_REPOS,world=createWorld(repositories,profile.login),selected=null;
-let view={x:0,y:0,zoom:1},drag=null,raf=0,repoFilter="all",repoQuery="";
-
-function resize(){
-  const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);
-  canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);render();
+import { SAMPLE_PROFILE, SAMPLE_REPOS, LANGUAGE_COLORS } from "./data.js";
+import { createUniverse } from "./scene3d.js";
+const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat().format(n||0);
+let profile=SAMPLE_PROFILE,repositories=SAMPLE_REPOS,universe;
+function pulse(repo){const age=repo.updated_at?Math.max(0,(Date.now()-new Date(repo.updated_at).getTime())/86400000):9999;return age<=30?"ACTIVE":age<=180?"COOLING":"DORMANT";}
+function showRepo(repo){
+ const color=LANGUAGE_COLORS[repo.language||"Other"]||LANGUAGE_COLORS.Other;
+ $("detail-name").textContent=repo.name;$("detail-description").textContent=repo.description||"No public description for this repository.";
+ $("planet-swatch").style.background=`radial-gradient(circle at 32% 28%,#fff,${color} 17%,#183747 53%,#050b14 80%)`;$("planet-swatch").style.boxShadow=`0 0 38px ${color}66,inset -10px -8px 16px #0009`;
+ $("detail-tags").innerHTML=[repo.language||"Other",pulse(repo)].map(x=>`<span>${x}</span>`).join("");$("detail-facts").textContent=`★ ${fmt(repo.stargazers_count)} STARS     ⑂ ${fmt(repo.forks_count)} FORKS`;$("detail-link").href=repo.html_url;$("inspector").classList.add("open");
 }
-function render(){cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>drawWorld(ctx,canvas.clientWidth,canvas.clientHeight,world,view,selected?.id));}
-function fmt(n){return new Intl.NumberFormat().format(n||0);}
-function renderProfile(){
-  $("avatar").src=profile.avatar_url||"https://github.com/identicons/"+profile.login+".png";
-  $("avatar").alt=(profile.name||profile.login)+" avatar";
-  $("profile-name").textContent=profile.name||profile.login;
-  $("profile-handle").textContent="@"+profile.login+" ↗";$("profile-handle").href=profile.html_url;
-  $("profile-bio").textContent=profile.bio||"No public bio provided.";
-  $("stat-repos").textContent=fmt(profile.public_repos??repositories.length);
-  $("stat-followers").textContent=fmt(profile.followers);$("stat-following").textContent=fmt(profile.following);
+function renderProfile(){$("world-title").textContent=(profile.name||profile.login).toUpperCase()+"'S EXPANSE";$("world-subtitle").textContent="@"+profile.login+" · "+repositories.length+" public repositories";$("repo-count").textContent=String(repositories.length).padStart(2,"0");}
+async function load(username){
+ const button=$("generate");button.disabled=true;button.textContent="BUILDING…";$("status").textContent="Mapping repository systems into 3D space…";
+ try{const data=await fetchDeveloper(username);profile=data.profile;repositories=data.repositories;renderProfile();universe.setRepositories(repositories,profile.login);$("status").textContent=`Universe formed from ${repositories.length} public repositories. Drag to orbit and click a planet.`;fetchRecentCommits(profile.login,repositories).then(commits=>{$("status").textContent+=` · ${commits.length} recent commit signals sampled.`;}).catch(()=>{});$("inspector").classList.remove("open");}
+ catch(error){$("status").textContent=error.message;}finally{button.disabled=false;button.textContent="GENERATE WORLD ↗";}
 }
-function renderLanguages(){
-  const counts=new Map();
-  for(const repo of repositories){const name=repo.language||"Other";counts.set(name,(counts.get(name)||0)+1);}
-  const total=repositories.length||1;
-  $("language-list").innerHTML=[...counts].sort((a,b)=>b[1]-a[1]).slice(0,7).map(([name,count])=>{
-    const pct=Math.round(count/total*100),color=LANGUAGE_COLORS[name]||LANGUAGE_COLORS.Other;
-    return `<div class="language-row"><span>${escapeHtml(name)}</span><div class="language-track"><div class="language-fill" style="width:${pct}%;background:${color}"></div></div><span class="language-pct">${pct}%</span></div>`;
-  }).join("")||'<p class="muted">No public language metadata.</p>';
-}
-function projectPulse(repo){
-  const updated=repo.updated_at?new Date(repo.updated_at):null;
-  if(!updated||Number.isNaN(updated.getTime()))return {key:"unknown",label:"UNKNOWN",age:null};
-  const age=Math.max(0,Math.floor((Date.now()-updated.getTime())/86400000));
-  if(age<=30)return {key:"active",label:"ACTIVE",age};
-  if(age<=180)return {key:"cooling",label:"COOLING",age};
-  return {key:"dormant",label:"DORMANT",age};
-}
-function renderRepos(){
-  const counts={active:0,cooling:0,dormant:0,unknown:0};
-  repositories.forEach(repo=>counts[projectPulse(repo).key]++);
-  $("repo-summary").textContent=`${repositories.length} · ${counts.active} ACTIVE`;
-  const filtered=repositories.filter(repo=>{
-    const pulse=projectPulse(repo),matchesFilter=repoFilter==="all"||pulse.key===repoFilter;
-    const haystack=[repo.name,repo.description,repo.language,...(repo.topics||[])].join(" ").toLowerCase();
-    return matchesFilter&&haystack.includes(repoQuery);
-  }).slice(0,100);
-  $("repo-list").innerHTML=filtered.map(repo=>{
-    const pulse=projectPulse(repo),age=pulse.age===null?"update unknown":pulse.age===0?"updated today":`updated ${pulse.age}d ago`;
-    return `<button class="repo-item" type="button" data-id="${repo.id}" aria-pressed="${selected?.id===repo.id}"><span class="repo-item-main"><strong>${escapeHtml(repo.name)}</strong><small>${escapeHtml(repo.description||"No description")}</small><span class="repo-state state-${pulse.key}">${pulse.label} · ${age}</span></span><span class="repo-meta">★ ${fmt(repo.stargazers_count)}</span></button>`;
-  }).join("")||'<p class="muted repo-no-results">No repositories match this view.</p>';
-  $("repo-list").querySelectorAll("button").forEach(button=>button.addEventListener("click",()=>selectRepo(repositories.find(r=>String(r.id)===button.dataset.id))));
-  document.querySelectorAll(".filter-chip").forEach(button=>{const active=button.dataset.filter===repoFilter;button.classList.toggle("is-active",active);button.setAttribute("aria-pressed",String(active));});
-}
-function escapeHtml(value=""){return String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));}
-function renderActivity(commits){
-  const chart=$("activity-chart"),feed=$("activity-feed");
-  $("commit-total").textContent=fmt(commits.length);
-  $("activity-caption").textContent=commits.length
-    ? `Recent commits authored by @${profile.login} · sampled across up to six repositories`
-    : "No recent public commits found in the sampled repositories.";
-  const now=new Date(),months=[];
-  for(let i=5;i>=0;i--){const date=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({key:`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`,label:date.toLocaleDateString(undefined,{month:"short"}) ,count:0});}
-  for(const commit of commits){const date=new Date(commit.date),key=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`,month=months.find(item=>item.key===key);if(month)month.count++;}
-  const max=Math.max(1,...months.map(item=>item.count));
-  chart.innerHTML=months.map(item=>`<div class="month-column"><div class="month-value">${item.count||""}</div><div class="month-track"><div class="month-bar" style="height:${Math.max(3,item.count/max*100)}%"></div></div><span>${item.label}</span></div>`).join("");
-  feed.innerHTML=commits.slice(0,8).map(commit=>`<a class="activity-item" href="${escapeHtml(commit.url)}" target="_blank" rel="noreferrer"><span class="activity-mark">↗</span><span class="activity-copy"><strong>${escapeHtml(commit.message)}</strong><small>${escapeHtml(commit.repo)} · ${new Date(commit.date).toLocaleDateString()}</small></span><span class="activity-sha">${commit.sha.slice(0,7)}</span></a>`).join("")||'<p class="muted">No recent commits were returned for these repositories.</p>';
-}
-function selectRepo(repo){
-  if(!repo)return;selected=repo;renderRepos();render();
-  const language=repo.language||"Other",pulse=projectPulse(repo),age=pulse.age===null?"Last update unavailable":pulse.age===0?"Updated today":`Last updated ${pulse.age} days ago`;
-  $("detail-content").innerHTML=`<h3 class="detail-name">${escapeHtml(repo.name)}</h3><p class="detail-description">${escapeHtml(repo.description||"No public description.")}</p><div class="detail-tags"><span class="detail-tag">${escapeHtml(language)}</span><span class="detail-tag">PRIMARY LANGUAGE</span><span class="detail-tag state-${pulse.key}">${pulse.label}</span></div><p class="pulse-explainer">${age} · Status is estimated from repository metadata, not commit frequency.</p><div class="detail-facts"><span>★ ${fmt(repo.stargazers_count)} STARS</span><span>⑂ ${fmt(repo.forks_count)} FORKS</span></div><a class="detail-link" href="${escapeHtml(repo.html_url)}" target="_blank" rel="noreferrer">OPEN REPOSITORY ↗</a>`;
-}
-function updateWorld(newProfile,newRepos){
-  profile=newProfile;repositories=newRepos;selected=null;view={x:0,y:0,zoom:1};
-  world=createWorld(repositories,profile.login);
-  $("world-title").textContent=(profile.name||profile.login)+"'s Expanse";
-  $("world-subtitle").textContent=`@ ${profile.login} · ${repositories.length} public owned repositories · generated just now`;
-  $("repo-count").textContent=fmt(repositories.length);repoFilter="all";repoQuery="";$("repo-search").value="";
-  renderProfile();renderLanguages();renderRepos();render();
-  $("commit-total").textContent="…";$("activity-caption").textContent="Sampling recent commit history…";$("activity-chart").innerHTML='<div class="activity-placeholder">Collecting recent public commit signals…</div>';$("activity-feed").innerHTML="";
-  $("detail-content").innerHTML='<div class="empty-inspector"><span>⌁</span><p>Select a structure on the map<br>or a repository in the list.</p></div>';
-}
-$("repo-search").addEventListener("input",event=>{repoQuery=event.target.value.trim().toLowerCase();renderRepos();});
-document.querySelectorAll(".filter-chip").forEach(button=>button.addEventListener("click",()=>{repoFilter=button.dataset.filter;renderRepos();}));
-$("search-form").addEventListener("submit",async event=>{
-  event.preventDefault();const username=$("username").value.trim(),button=$("generate");
-  button.disabled=true;button.textContent="SCANNING…";$("status").textContent="Contacting GitHub's public API…";
-  try{const data=await fetchDeveloper(username);updateWorld(data.profile,data.repositories);$("status").textContent=`World generated from ${data.repositories.length} public repositories.`;
-    fetchRecentCommits(data.profile.login,data.repositories).then(renderActivity).catch(()=>renderActivity([]));}
-  catch(error){$("status").textContent=error.message;}
-  finally{button.disabled=false;button.innerHTML='GENERATE <span>↗</span>';}
-});
-function zoomAt(factor){view.zoom=Math.max(.45,Math.min(2.5,view.zoom*factor));render();}
-$("zoom-in").addEventListener("click",()=>zoomAt(1.2));$("zoom-out").addEventListener("click",()=>zoomAt(1/1.2));
-$("reset-view").addEventListener("click",()=>{view={x:0,y:0,zoom:1};render();});
-canvas.addEventListener("pointerdown",event=>{drag={x:event.clientX,y:event.clientY,moved:false};canvas.setPointerCapture(event.pointerId);});
-canvas.addEventListener("pointermove",event=>{
-  if(drag){const dx=event.clientX-drag.x,dy=event.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>2)drag.moved=true;if(drag.moved){view.x+=dx;view.y+=dy;drag.x=event.clientX;drag.y=event.clientY;render();}}
-  const rect=canvas.getBoundingClientRect();$("map-coords").textContent=`X ${String(Math.round((event.clientX-rect.left)/2)).padStart(4,"0")} / Y ${String(Math.round((event.clientY-rect.top)/2)).padStart(4,"0")}`;
-});
-canvas.addEventListener("pointerup",event=>{if(drag&&!drag.moved){const repo=hitTest(canvas,world,view,event.clientX,event.clientY);if(repo)selectRepo(repo);}drag=null;});
-canvas.addEventListener("pointercancel",()=>drag=null);
-canvas.addEventListener("wheel",event=>{event.preventDefault();zoomAt(event.deltaY<0?1.08:1/1.08);},{passive:false});
-new ResizeObserver(resize).observe(canvas);
-updateWorld(profile,repositories);
-$("commit-total").textContent="—";
-$("activity-caption").textContent="Generate a GitHub world to explore its recent commit timeline.";
-$("activity-chart").innerHTML='<div class="activity-placeholder">Recent commit history will appear here after a GitHub lookup.</div>';
-resize();
+$("search-form").addEventListener("submit",e=>{e.preventDefault();load($("username").value.trim());});
+$("close-inspector").addEventListener("click",()=>$("inspector").classList.remove("open"));
+$("reset-view").addEventListener("click",()=>universe.reset());let paused=false;$("toggle-motion").addEventListener("click",()=>{paused=!paused;universe.pause(paused);$("toggle-motion").textContent=paused?"▶ RESUME ORBIT":"Ⅱ PAUSE ORBIT";});
+universe=createUniverse($("world"),showRepo);universe.setRepositories(repositories,profile.login);renderProfile();
