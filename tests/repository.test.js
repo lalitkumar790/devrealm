@@ -158,7 +158,7 @@ test("analyzeCallGraph ignores calls written only in comments and string literal
    "/* execute(); */",
    "const note = \"execute()\";",
    "function run() { execute(); }"
-  ].join("\\n")}
+  ].join("\n")}
  ]);
  assert.equal(graph.edges.length,1);
  assert.equal(graph.edges[0].name,"execute");
