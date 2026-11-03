@@ -185,3 +185,19 @@ test("analyzeCallGraph attributes call sites to the narrowest enclosing function
  assert.equal(calls.find(edge=>edge.from.line===4).from.caller.name,"inner");
  assert.equal(calls.find(edge=>edge.from.line===7).from.caller,null);
 });
+
+
+test("traceFunctionImpact follows transitive callers and callees",()=>{
+ const graph=analyzeCallGraph([
+  {path:"src/base.js",source:"function base() {}"},
+  {path:"src/middle.js",source:"function middle() { base(); }"},
+  {path:"src/app.js",source:"function app() { middle(); }"}
+ ]);
+ const impact=traceFunctionImpact(graph,{path:"src/base.js",line:1});
+ assert.deepEqual(impact.callers.map(item=>item.name).sort(),["app","middle"]);
+ assert.deepEqual(impact.callees,[]);
+ assert.equal(impact.impacted.length,3);
+ const appImpact=traceFunctionImpact(graph,{path:"src/app.js",line:1});
+ assert.deepEqual(appImpact.callees.map(item=>item.name),["middle","base"]);
+ assert.deepEqual(appImpact.callers,[]);
+});
