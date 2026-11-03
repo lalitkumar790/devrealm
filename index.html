@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="./styles.css">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 </head><body>
-<div id="universe"><canvas id="world"></canvas></div><div class="vignette"></div>
+<div id="universe"><div id="fallback-galaxy" aria-hidden="true"></div><canvas id="world"></canvas></div><div class="vignette"></div>
 <header class="topbar">
  <a class="brand" href="#"><span class="brand-mark">✳</span> DEVREALM <small>THE DEVELOPER UNIVERSE</small></a>
  <div class="top-meta"><span class="live-dot"></span> SIMULATION ONLINE <span class="divider">/</span> GITHUB LINK ACTIVE</div>
@@ -35,4 +35,4 @@
   <div class="dock-instructions"><span>DRAG</span> ORBIT <i></i><span>SCROLL</span> ZOOM <i></i><span>CLICK</span> SCAN PLANET</div>
   <button id="analyze-architecture" class="architecture-trigger" hidden>◈ ARCHITECTURE</button><button id="reset-view">◎ GALAXY VIEW</button><button id="toggle-motion">Ⅱ PAUSE ORBIT</button>
  </nav>
-</main><script type="module" src="./src/app.js"></script></body></html>
+</main><script type="module">import("./src/app.js").catch(error=>{console.error("DevRealm startup failed:",error);const status=document.getElementById("status");if(status)status.textContent="3D startup failed: "+(error?.message||"unknown error")+" · Check WebGL and CDN access.";const fallback=document.getElementById("fallback-galaxy");if(fallback)fallback.classList.add("visible");document.documentElement.classList.add("boot-failed");});</script></body></html>
