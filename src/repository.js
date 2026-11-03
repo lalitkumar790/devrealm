@@ -1,5 +1,12 @@
 const SOURCE_EXTENSIONS = new Set([".js",".jsx",".ts",".tsx",".py",".rs",".go",".java",".cpp",".c",".h",".hpp",".cs",".rb",".php",".swift",".kt",".vue",".svelte"]);
 const ext = path => { const i=path.lastIndexOf("."); return i<0 ? "" : path.slice(i).toLowerCase(); };
+
+export function matchesRepository(repo = {}, query = "") {
+ const needle=String(query).trim().toLowerCase();
+ if(!needle)return true;
+ const searchable=[repo.name,repo.full_name,repo.description,repo.language,...(repo.topics||[])].filter(Boolean).join(" ").toLowerCase();
+ return searchable.includes(needle);
+}
 export function analyzeTree(entries = []) {
  const files=entries.filter(item=>item.type==="blob"&&!item.path.startsWith(".git/"));
  const directories=new Map();
