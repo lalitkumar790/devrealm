@@ -170,9 +170,9 @@ function maskNonCode(source="") {
  let quote=null,escaped=false,lineComment=false,blockComment=false;
  for(let i=0;i<chars.length;i++){
   const ch=chars[i],next=chars[i+1];
-  if(lineComment){if(ch==="\\n")lineComment=false;else masked[i]=" ";continue;}
-  if(blockComment){if(ch==="*"&&next==="/"){masked[i]=" ";masked[i+1]=" ";i++;blockComment=false;}else if(ch!=="\\n")masked[i]=" ";continue;}
-  if(quote){if(ch!=="\\n")masked[i]=" ";if(escaped){escaped=false;continue;}if(ch==="\\\\"){escaped=true;continue;}if(ch===quote)quote=null;continue;}
+  if(lineComment){if(ch==="\n")lineComment=false;else masked[i]=" ";continue;}
+  if(blockComment){if(ch==="*"&&next==="/"){masked[i]=" ";masked[i+1]=" ";i++;blockComment=false;}else if(ch!=="\n")masked[i]=" ";continue;}
+  if(quote){if(ch!=="\n")masked[i]=" ";if(escaped){escaped=false;continue;}if(ch==="\\"){escaped=true;continue;}if(ch===quote)quote=null;continue;}
   if(ch==="/"&&next==="/"){masked[i]=" ";masked[i+1]=" ";i++;lineComment=true;continue;}
   if(ch==="/"&&next==="*"){masked[i]=" ";masked[i+1]=" ";i++;blockComment=true;continue;}
   if(ch==="#"){masked[i]=" ";lineComment=true;continue;}
