@@ -165,6 +165,22 @@ export function analyzeSymbols(sourceFiles = []) {
 }
 
 
+function maskNonCode(source="") {
+ const chars=[...source],masked=[...source];
+ let quote=null,escaped=false,lineComment=false,blockComment=false;
+ for(let i=0;i<chars.length;i++){
+  const ch=chars[i],next=chars[i+1];
+  if(lineComment){if(ch==="\\n")lineComment=false;else masked[i]=" ";continue;}
+  if(blockComment){if(ch==="*"&&next==="/"){masked[i]=" ";masked[i+1]=" ";i++;blockComment=false;}else if(ch!=="\\n")masked[i]=" ";continue;}
+  if(quote){if(ch!=="\\n")masked[i]=" ";if(escaped){escaped=false;continue;}if(ch==="\\\\"){escaped=true;continue;}if(ch===quote)quote=null;continue;}
+  if(ch==="/"&&next==="/"){masked[i]=" ";masked[i+1]=" ";i++;lineComment=true;continue;}
+  if(ch==="/"&&next==="*"){masked[i]=" ";masked[i+1]=" ";i++;blockComment=true;continue;}
+  if(ch==="#"){masked[i]=" ";lineComment=true;continue;}
+  if(ch==="'"||ch==='"'||ch==="\x60"){masked[i]=" ";quote=ch;continue;}
+ }
+ return masked.join("");
+}
+
 const CALL_KEYWORDS = new Set(["if","for","while","switch","catch","function","return","typeof","new","class","def","fn","func","with","super","this","print","require","import"]);
 export function analyzeCallGraph(sourceFiles = []) {
  const symbols=analyzeSymbols(sourceFiles).filter(symbol=>symbol.kind==="function");
@@ -175,7 +191,7 @@ export function analyzeCallGraph(sourceFiles = []) {
   const source=file.source||"";
   const callPattern=/\b([A-Za-z_$][\w$]*)\s*\(/g;
   let match;
-  while((match=callPattern.exec(source))){
+  while((match=callPattern.exec(code))){
    const name=match[1],candidates=byName.get(name)||[];
    if(CALL_KEYWORDS.has(name))continue;
    const line=(source.slice(0,match.index).match(/\n/g)||[]).length+1;
