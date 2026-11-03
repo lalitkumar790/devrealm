@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols, analyzeCallGraph, traceFunctionImpact } from "../src/repository.js";
+import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols, analyzeCallGraph, traceFunctionImpact, matchesRepository } from "../src/repository.js";
 
 test("analyzeTree counts files, source files and directory contents", () => {
   const result = analyzeTree([
@@ -263,4 +263,15 @@ test("analyzeCallGraph leaves multiple imported definitions ambiguous",()=>{
  assert.equal(graph.edges.length,0);
  assert.equal(graph.ambiguous.length,1);
  assert.match(graph.ambiguous[0].reason,/multiple imported modules/);
+});
+
+
+test("matchesRepository searches names, descriptions, languages and topics case-insensitively",()=>{
+ const repo={name:"RobotCore",full_name:"user/RobotCore",description:"ROS2 swarm robotics toolkit",language:"C++",topics:["robotics","ros2"]};
+ assert.equal(matchesRepository(repo,"robotcore"),true);
+ assert.equal(matchesRepository(repo,"SWARM"),true);
+ assert.equal(matchesRepository(repo,"c++"),true);
+ assert.equal(matchesRepository(repo,"ROS2"),true);
+ assert.equal(matchesRepository(repo,"python"),false);
+ assert.equal(matchesRepository(repo,"   "),true);
 });
