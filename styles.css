@@ -46,3 +46,11 @@
 #fallback-galaxy::after{content:"";position:absolute;left:50%;top:49%;width:min(30vw,240px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 32%,#effff9 0%,#8cebd0 7%,#2a8a7c 18%,#163f57 42%,transparent 69%);filter:drop-shadow(0 0 35px #4bd5b288)}
 #fallback-galaxy.visible{display:block}
 .boot-failed #world{display:none}
+
+
+.planet-filter{display:flex;align-items:center;gap:8px;margin-top:8px;padding:4px 7px;border:1px solid #ffffff1c;background:#07101bd9;backdrop-filter:blur(12px)}
+.planet-filter input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#dff8f0;font:9px "DM Mono",monospace;padding:5px 2px}
+.planet-filter input::placeholder{color:#657987}
+.planet-filter span{white-space:nowrap;color:#a4f5d7;font:8px "DM Mono",monospace}
+.planet-filter input:disabled{opacity:.4}
+@media(max-width:640px){.hero{width:calc(100vw - 32px);left:16px;top:94px}.planet-filter input{font-size:8px}.planet-filter span{font-size:7px}}
