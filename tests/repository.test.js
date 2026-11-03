@@ -215,3 +215,52 @@ test("analyzeCallGraph keeps same-line calls inside compact function bodies",()=
  assert.deepEqual(impact.callers.map(item=>item.name).sort(),["app","middle"]);
  assert.equal(graph.functionEdges.reduce((sum,edge)=>sum+edge.callSites,0),2);
 });
+
+
+test("analyzeCallGraph resolves duplicate names through the caller's imported module",()=>{
+ const files=[
+  {path:"src/a.js",source:"export function load() {}"},
+  {path:"src/b.js",source:"export function load() {}"},
+  {path:"src/app.js",source:"import { load } from './a.js';\nfunction run() { load(); }"}
+ ];
+ const graph=analyzeCallGraph(files,[{from:"src/app.js",to:"src/a.js",specifier:"./a.js"}]);
+ assert.equal(graph.edges.length,1);
+ assert.equal(graph.edges[0].to.path,"src/a.js");
+ assert.equal(graph.edges[0].confidence,"import-aware-candidate");
+ assert.equal(graph.ambiguous.length,0);
+});
+
+test("analyzeCallGraph keeps duplicate names ambiguous without an import match",()=>{
+ const files=[
+  {path:"src/a.js",source:"export function load() {}"},
+  {path:"src/b.js",source:"export function load() {}"},
+  {path:"src/app.js",source:"function run() { load(); }"}
+ ];
+ const graph=analyzeCallGraph(files,[]);
+ assert.equal(graph.edges.length,0);
+ assert.equal(graph.ambiguous.length,1);
+ assert.match(graph.ambiguous[0].reason,/no unique imported definition/);
+});
+
+test("analyzeCallGraph prefers a same-file definition over imported duplicates",()=>{
+ const files=[
+  {path:"src/a.js",source:"export function load() {}"},
+  {path:"src/app.js",source:"import { load } from './a.js';\nfunction loadLocal() { load(); }\nfunction load() {}"}
+ ];
+ const graph=analyzeCallGraph(files,[{from:"src/app.js",to:"src/a.js"}]);
+ const call=graph.edges.find(edge=>edge.from.path==="src/app.js");
+ assert.equal(call.to.path,"src/app.js");
+ assert.equal(call.confidence,"same-file");
+});
+
+test("analyzeCallGraph leaves multiple imported definitions ambiguous",()=>{
+ const files=[
+  {path:"src/a.js",source:"export function load() {}"},
+  {path:"src/b.js",source:"export function load() {}"},
+  {path:"src/app.js",source:"function run() { load(); }"}
+ ];
+ const graph=analyzeCallGraph(files,[{from:"src/app.js",to:"src/a.js"},{from:"src/app.js",to:"src/b.js"}]);
+ assert.equal(graph.edges.length,0);
+ assert.equal(graph.ambiguous.length,1);
+ assert.match(graph.ambiguous[0].reason,/multiple imported modules/);
+});
