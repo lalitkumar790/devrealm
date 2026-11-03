@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { LANGUAGE_COLORS } from "./data.js";
-import { childrenAt } from "./repository.js";
+import { childrenAt, matchesRepository } from "./repository.js";
 
 const BIOMES={JavaScript:["#342c1c","#a87538","#e6c77a","#f7e4ac"],TypeScript:["#102b3d","#176a83","#42b7c4","#b2f2e7"],Python:["#183b2c","#347a4c","#8ebd68","#d5e9a1"],Rust:["#321b19","#8b3828","#d56b3c","#f3b06c"],Go:["#15323b","#287e8c","#5bc7c7","#c0f4eb"],"C++":["#211e42","#454b91","#8d8ee0","#d9d3ff"],C:["#222c36","#465d70","#8ca8b8","#d9e7ec"],Java:["#3a2520","#98523b","#db9866","#f4d0a1"],Other:["#1d2c39","#405a6b","#829ba8","#d6e3e8"]};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),hex=v=>new THREE.Color(v);
@@ -24,7 +24,7 @@ export function createUniverse(canvas,onSelect){
  const nebula=new THREE.Group();scene.add(nebula);for(let i=0;i<8;i++){const sprite=new THREE.Sprite(new THREE.SpriteMaterial({color:[0x244d65,0x44365e,0x1e635a,0x49354a][i%4],transparent:true,opacity:.075,depthWrite:false,blending:THREE.AdditiveBlending}));sprite.position.set((rand()-.5)*950,(rand()-.5)*400,(rand()-.5)*950);sprite.scale.set(170+rand()*170,100+rand()*100,1);nebula.add(sprite);}
  const core=new THREE.Group();scene.add(core);const sun=new THREE.Mesh(new THREE.SphereGeometry(13,48,48),new THREE.MeshStandardMaterial({color:0xb8ffe9,emissive:0x3ca98d,emissiveIntensity:2.8,roughness:.3}));core.add(sun);core.add(new THREE.Mesh(new THREE.SphereGeometry(18,40,40),new THREE.MeshBasicMaterial({color:0x64d9bd,transparent:true,opacity:.075,side:THREE.BackSide})));
  for(let r=30;r<=165;r+=27){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.035,4,180),new THREE.MeshBasicMaterial({color:0x6d9b9a,transparent:true,opacity:.14}));ring.rotation.x=Math.PI/2;core.add(ring);}
- const group=new THREE.Group();scene.add(group);const interior=new THREE.Group();scene.add(interior);interior.visible=false;let interiorObjects=[],architectureOverlay=null;const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let planetMeshes=[],paused=false,focusTarget=null,focusPosition=null;
+ const group=new THREE.Group();scene.add(group);const interior=new THREE.Group();scene.add(interior);interior.visible=false;let interiorObjects=[],architectureOverlay=null,constellationLines=null;const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let planetMeshes=[],paused=false,focusTarget=null,focusPosition=null;
  function labelSprite(text){const c=document.createElement("canvas"),ctx=c.getContext("2d");c.width=512;c.height=96;ctx.font="500 32px monospace";ctx.textAlign="center";ctx.fillStyle="#e2f8f1";ctx.shadowColor="#a4f5d7";ctx.shadowBlur=15;ctx.fillText(text.slice(0,25),256,58);const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false}));sprite.scale.set(34,6.3,1);return sprite;}
  function clearGroup(){while(group.children.length){const obj=group.children[group.children.length-1];group.remove(obj);obj.traverse?.(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});}}
  function setRepositories(repos,login){
@@ -44,9 +44,24 @@ export function createUniverse(canvas,onSelect){
    if(["JavaScript","TypeScript","Python","Rust","C++"].includes(language)){const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(size*.24,0),new THREE.MeshStandardMaterial({color:palette[3],emissive:color,emissiveIntensity:.22,roughness:.4}));crystal.position.set(size*.4,size*.75,0);planet.add(crystal);}
    planetMeshes.push(planet);
   });
-  const linePositions=[];for(let i=0;i<planetMeshes.length;i++)for(let j=i+1;j<planetMeshes.length;j++){const a=planetMeshes[i],b=planetMeshes[j],ra=a.userData.repo,rb=b.userData.repo,shared=(ra.language&&ra.language===rb.language)||(ra.topics||[]).some(t=>(rb.topics||[]).includes(t));if(shared&&a.position.distanceTo(b.position)<180)linePositions.push(a.position.x,a.position.y,a.position.z,b.position.x,b.position.y,b.position.z);}
-  if(linePositions.length){const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(linePositions,3));group.add(new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:0x75d9c0,transparent:true,opacity:.22})));}
+  rebuildConstellations();
   const bounds=new THREE.Box3().setFromObject(group),sphere=bounds.getBoundingSphere(new THREE.Sphere()),distance=Math.max(90,sphere.radius*2.45);controls.target.set(0,0,0);camera.position.set(distance*.08,distance*.48,distance);controls.maxDistance=Math.max(900,sphere.radius*7);controls.update();focusTarget=null;focusPosition=null;
+ }
+ function rebuildConstellations(){
+  if(constellationLines){group.remove(constellationLines);constellationLines.geometry.dispose();constellationLines.material.dispose();constellationLines=null;}
+  const positions=[],visible=planetMeshes.filter(planet=>planet.visible);
+  for(let i=0;i<visible.length;i++)for(let j=i+1;j<visible.length;j++){
+   const a=visible[i],b=visible[j],ra=a.userData.repo,rb=b.userData.repo;
+   const shared=(ra.language&&ra.language===rb.language)||(ra.topics||[]).some(topic=>(rb.topics||[]).includes(topic));
+   if(shared&&a.position.distanceTo(b.position)<180)positions.push(a.position.x,a.position.y,a.position.z,b.position.x,b.position.y,b.position.z);
+  }
+  if(positions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));const material=new THREE.LineBasicMaterial({color:0x75d9c0,transparent:true,opacity:.22});constellationLines=new THREE.LineSegments(geometry,material);group.add(constellationLines);}
+ }
+ function filterRepositories(query=""){
+  let count=0;
+  for(const planet of planetMeshes){planet.visible=matchesRepository(planet.userData.repo,query);if(planet.visible)count++;}
+  rebuildConstellations();
+  return count;
  }
  function focus(repo,planet){const direction=new THREE.Vector3().subVectors(camera.position,controls.target).normalize(),distance=Math.max(23,planet.scale.x*11+18);focusTarget=planet.position.clone();focusPosition=planet.position.clone().add(direction.multiplyScalar(distance));onSelect(repo);}
  function onPointer(event){const rect=renderer.domElement.getBoundingClientRect();pointer.x=((event.clientX-rect.left)/rect.width)*2-1;pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;raycaster.setFromCamera(pointer,camera);if(interior.visible){const deepHits=raycaster.intersectObjects(interiorObjects,false);if(deepHits.length&&deepHits[0].object.userData.node)onSelect(interior.userData.repo,deepHits[0].object.userData.node);return;}const roots=planetMeshes.flatMap(p=>p.children.filter(c=>c.isMesh));const hits=raycaster.intersectObjects(roots,false);if(hits.length){let obj=hits[0].object;while(obj.parent&&!obj.userData.repo)obj=obj.parent;if(obj.userData.repo)focus(obj.userData.repo,obj);}}
@@ -126,5 +141,5 @@ function enterRepository(repo,analysis,diff=null){interior.userData.repo=repo;in
 function enterDirectory(path){if(!interior.visible||!interior.userData.analysis)return;drawInterior(path);}
 function goUpDirectory(){const path=interior.userData.path||"";if(!path)return;enterDirectory(path.split("/").slice(0,-1).join("/"));}
 function exitRepository(){interior.visible=false;group.visible=true;core.visible=true;focusTarget=null;focusPosition=null;controls.target.set(0,0,0);const d=Math.max(260,Math.min(700,planetMeshes.length*10));camera.position.set(d*.08,d*.48,d);controls.update();}
- return {setRepositories,enterRepository,enterDirectory,goUpDirectory,exitRepository,showArchitecture,showDependencyTrace,select(id){const p=planetMeshes.find(m=>String(m.userData.repo.id)===String(id));if(p)focus(p.userData.repo,p);},reset(){focusTarget=null;focusPosition=null;controls.target.set(0,0,0);const d=Math.max(260,Math.min(700,planetMeshes.length*10));camera.position.set(d*.08,d*.48,d);controls.update();},focusPath(path){const mesh=interior.userData.fileMeshes?.get(path);if(!mesh)return false;const target=mesh.getWorldPosition(new THREE.Vector3());focusTarget=target;const direction=new THREE.Vector3().subVectors(camera.position,controls.target).normalize();focusPosition=target.clone().add(direction.multiplyScalar(24));onSelect(interior.userData.repo,mesh.userData.node);return true;},pause(value){paused=value;controls.autoRotate=!value;}};
+ return {setRepositories,filterRepositories,enterRepository,enterDirectory,goUpDirectory,exitRepository,showArchitecture,showDependencyTrace,select(id){const p=planetMeshes.find(m=>String(m.userData.repo.id)===String(id));if(p)focus(p.userData.repo,p);},reset(){focusTarget=null;focusPosition=null;controls.target.set(0,0,0);const d=Math.max(260,Math.min(700,planetMeshes.length*10));camera.position.set(d*.08,d*.48,d);controls.update();},focusPath(path){const mesh=interior.userData.fileMeshes?.get(path);if(!mesh)return false;const target=mesh.getWorldPosition(new THREE.Vector3());focusTarget=target;const direction=new THREE.Vector3().subVectors(camera.position,controls.target).normalize();focusPosition=target.clone().add(direction.multiplyScalar(24));onSelect(interior.userData.repo,mesh.userData.node);return true;},pause(value){paused=value;controls.autoRotate=!value;}};
 }
