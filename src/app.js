@@ -20,7 +20,7 @@ function showRepo(repo,node){
 function renderProfile(){$("world-title").textContent=(profile.name||profile.login).toUpperCase()+"'S EXPANSE";$("world-subtitle").textContent="@"+profile.login+" · "+repositories.length+" public repositories";$("repo-count").textContent=String(repositories.length).padStart(2,"0");}
 async function load(username){
  window.currentRevisionDiff=null;window.currentRepositoryTree=null;window.selectedRepository=null;window.selectedNode=null;architectureVisible=false;$("architecture-panel").hidden=true;$("analyze-architecture").hidden=true;$("inspector").classList.remove("open");$("status").textContent="Connecting to GitHub and loading public repository metadata…";
- const button=$("generate");button.disabled=true;button.textContent="BUILDING…";$("status").textContent="Mapping repository systems into 3D space…";
+ const button=$("generate");button.disabled=true;button.textContent="BUILDING…";$("status").textContent="Fetching GitHub profile and repository metadata…";
  try{const data=await fetchDeveloper(username);profile=data.profile;repositories=data.repositories;renderProfile();universe.setRepositories(repositories,profile.login);$("status").textContent=`Universe formed from ${repositories.length} public repositories. Drag to orbit and click a planet.`;fetchRecentCommits(profile.login,repositories).then(commits=>{$("status").textContent+=` · ${commits.length} recent commit signals sampled.`;}).catch(()=>{});$("inspector").classList.remove("open");}
  catch(error){$("status").textContent=error.message;}finally{button.disabled=false;button.textContent="GENERATE WORLD ↗";}
 }
