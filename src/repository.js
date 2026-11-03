@@ -181,12 +181,47 @@ function maskNonCode(source="") {
  return masked.join("");
 }
 
+function findFunctionScopes(sourceFiles,symbols) {
+ const scopes=[];
+ for(const file of sourceFiles){
+  const source=file.source||"",code=maskNonCode(source),lines=source.split("\n");
+  for(const symbol of symbols.filter(item=>item.definition.path===file.path)){
+   const startLine=symbol.definition.line,startOffset=lines.slice(0,startLine-1).reduce((sum,line)=>sum+line.length+1,0);
+   const lineText=lines[startLine-1]||"",indent=(lineText.match(/^\s*/)||[""])[0].length;
+   const python=/\.(py|rb)$/.test(file.path);
+   let endLine=lines.length;
+   if(python){
+    for(let n=startLine;n<lines.length;n++){
+     if(!lines[n].trim())continue;
+     const currentIndent=(lines[n].match(/^\s*/)||[""])[0].length;
+     if(currentIndent<=indent){endLine=n;break;}
+    }
+   }else{
+    const open=code.indexOf("{",startOffset);
+    if(open>=0){
+     let depth=0,close=-1;
+     for(let n=open;n<code.length;n++){if(code[n]==="{")depth++;else if(code[n]==="}"&&--depth===0){close=n;break;}}
+     if(close>=0)endLine=(source.slice(0,close).match(/\n/g)||[]).length+1;
+    }else{
+     const next=symbols.filter(item=>item.definition.path===file.path&&item.definition.line>startLine).sort((a,b)=>a.definition.line-b.definition.line)[0];
+     if(next)endLine=next.definition.line-1;
+    }
+   }
+   scopes.push({path:file.path,startLine,endLine,definition:symbol.definition,name:symbol.name,span:endLine-startLine});
+  }
+ }
+ return scopes;
+}
+function scopeAt(scopes,path,line) {
+ return scopes.filter(scope=>scope.path===path&&scope.startLine<=line&&scope.endLine>=line).sort((a,b)=>a.span-b.span)[0]||null;
+}
+
 const CALL_KEYWORDS = new Set(["if","for","while","switch","catch","function","return","typeof","new","class","def","fn","func","with","super","this","print","require","import"]);
 export function analyzeCallGraph(sourceFiles = []) {
  const symbols=analyzeSymbols(sourceFiles).filter(symbol=>symbol.kind==="function");
  const byName=new Map();
  for(const symbol of symbols){if(!byName.has(symbol.name))byName.set(symbol.name,[]);byName.get(symbol.name).push(symbol);}
- const edges=[],ambiguous=[];
+ const edges=[],ambiguous=[],scopes=findFunctionScopes(sourceFiles,symbols);
  for(const file of sourceFiles){
   const source=file.source||"",code=maskNonCode(source);
   const callPattern=/\b([A-Za-z_$][\w$]*)\s*\(/g;
@@ -200,7 +235,7 @@ export function analyzeCallGraph(sourceFiles = []) {
    if(candidates.length>1){ambiguous.push({name,path:file.path,line,candidates:candidates.map(item=>item.definition)});continue;}
    const target=candidates[0];
    if(target.definition.path===file.path&&target.definition.line===line)continue;
-   edges.push({from:{path:file.path,line},to:target.definition,name,confidence:"textual-candidate"});
+   const caller=scopeAt(scopes,file.path,line);\n   edges.push({from:{path:file.path,line,caller:caller?{name:caller.name,definition:caller.definition}:null},to:target.definition,name,confidence:"textual-candidate"});
   }
  }
  const unique=new Map();
