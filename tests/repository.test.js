@@ -164,3 +164,24 @@ test("analyzeCallGraph ignores calls written only in comments and string literal
  assert.equal(graph.edges[0].name,"execute");
  assert.equal(graph.edges[0].from.line,4);
 });
+
+
+test("analyzeCallGraph attributes call sites to the narrowest enclosing function",()=>{
+ const graph=analyzeCallGraph([
+  {path:"src/target.js",source:"export function execute() { return 1; }"},
+  {path:"src/consumer.js",source:[
+   "function outer() {",
+   "  execute();",
+   "  function inner() {",
+   "    execute();",
+   "  }",
+   "}",
+   "execute();"
+  ].join("\n")}
+ ]);
+ const calls=graph.edges.filter(edge=>edge.from.path==="src/consumer.js");
+ assert.equal(calls.length,3);
+ assert.equal(calls.find(edge=>edge.from.line===2).from.caller.name,"outer");
+ assert.equal(calls.find(edge=>edge.from.line===4).from.caller.name,"inner");
+ assert.equal(calls.find(edge=>edge.from.line===7).from.caller,null);
+});
