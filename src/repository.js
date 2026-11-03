@@ -217,27 +217,36 @@ function scopeAt(scopes,path,line) {
 }
 
 const CALL_KEYWORDS = new Set(["if","for","while","switch","catch","function","return","typeof","new","class","def","fn","func","with","super","this","print","require","import"]);
-export function analyzeCallGraph(sourceFiles = []) {
+export function analyzeCallGraph(sourceFiles = [], relations = []) {
  const symbols=analyzeSymbols(sourceFiles).filter(symbol=>symbol.kind==="function");
  const byName=new Map();
  for(const symbol of symbols){if(!byName.has(symbol.name))byName.set(symbol.name,[]);byName.get(symbol.name).push(symbol);}
+ const importsByFile=new Map();
+ for(const relation of relations){if(!relation?.from||!relation?.to)continue;if(!importsByFile.has(relation.from))importsByFile.set(relation.from,new Set());importsByFile.get(relation.from).add(relation.to);}
  const edges=[],ambiguous=[],scopes=findFunctionScopes(sourceFiles,symbols);
  for(const file of sourceFiles){
-  const source=file.source||"",code=maskNonCode(source);
-  const callPattern=/\b([A-Za-z_$][\w$]*)\s*\(/g;
+  const source=file.source||"",code=maskNonCode(source),imported=importsByFile.get(file.path)||new Set();
+  const callPattern=/\\b([A-Za-z_$][\\w$]*)\\s*\\(/g;
   let match;
   while((match=callPattern.exec(code))){
    const name=match[1],candidates=byName.get(name)||[];
-   if(CALL_KEYWORDS.has(name))continue;
-   const line=(source.slice(0,match.index).match(/\n/g)||[]).length+1;
+   if(CALL_KEYWORDS.has(name)||!candidates.length)continue;
+   const line=(source.slice(0,match.index).match(/\\n/g)||[]).length+1;
    const prefix=code.slice(Math.max(0,match.index-80),match.index);
-   const isDefinition=/\b(?:function|def|fn|func)\s*$/.test(prefix);
-   if(isDefinition||!candidates.length)continue;
-   if(candidates.length>1){ambiguous.push({name,path:file.path,line,candidates:candidates.map(item=>item.definition)});continue;}
-   const target=candidates[0];
+   const isDefinition=/\\b(?:function|def|fn|func)\\s*$/.test(prefix);
+   if(isDefinition)continue;
+   const sameFile=candidates.filter(item=>item.definition.path===file.path);
+   const importedCandidates=candidates.filter(item=>imported.has(item.definition.path));
+   let target=null,confidence=null;
+   if(sameFile.length===1){target=sameFile[0];confidence="same-file";}
+   else if(sameFile.length>1){ambiguous.push({name,path:file.path,line,reason:"multiple same-file definitions",candidates:sameFile.map(item=>item.definition)});continue;}
+   else if(importedCandidates.length===1){target=importedCandidates[0];confidence="import-aware-candidate";}
+   else if(importedCandidates.length>1){ambiguous.push({name,path:file.path,line,reason:"multiple imported modules define this name",candidates:importedCandidates.map(item=>item.definition)});continue;}
+   else if(candidates.length===1){target=candidates[0];confidence="textual-candidate";}
+   else{ambiguous.push({name,path:file.path,line,reason:"no unique imported definition",candidates:candidates.map(item=>item.definition)});continue;}
    if(target.definition.path===file.path&&target.definition.line===line)continue;
    const caller=scopeAt(scopes,file.path,line);
-   edges.push({from:{path:file.path,line,caller:caller?{name:caller.name,definition:caller.definition}:null},to:target.definition,name,confidence:"textual-candidate"});
+   edges.push({from:{path:file.path,line,caller:caller?{name:caller.name,definition:caller.definition}:null},to:target.definition,name,confidence});
   }
  }
  const unique=new Map();
@@ -247,13 +256,12 @@ export function analyzeCallGraph(sourceFiles = []) {
  for(const edge of resolved){
   if(!edge.from.caller)continue;
   const key=[edge.from.caller.definition.path,edge.from.caller.definition.line,edge.to.path,edge.to.line].join("::");
-  if(!functionEdgeMap.has(key))functionEdgeMap.set(key,{from:edge.from.caller,to:{name:edge.name,...edge.to},callSites:0});
+  if(!functionEdgeMap.has(key))functionEdgeMap.set(key,{from:edge.from.caller,to:{name:edge.name,...edge.to},callSites:0,confidence:edge.confidence});
   functionEdgeMap.get(key).callSites++;
  }
- const functionEdges=[...functionEdgeMap.values()];
  const callers=new Map(symbols.map(item=>[item.definition.path+"::"+item.name,0]));
  for(const edge of resolved){const key=edge.to.path+"::"+edge.name;callers.set(key,(callers.get(key)||0)+1);}
- return {functions:symbols.length,edges:resolved,functionEdges,ambiguous,unresolvedCount:0,callers:[...callers].map(([key,count])=>({key,count})).sort((a,b)=>b.count-a.count)};
+ return {functions:symbols.length,edges:resolved,functionEdges:[...functionEdgeMap.values()],ambiguous,unresolvedCount:0,callers:[...callers].map(([key,count])=>({key,count})).sort((a,b)=>b.count-a.count)};
 }
 
 
