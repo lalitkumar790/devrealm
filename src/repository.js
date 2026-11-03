@@ -230,7 +230,7 @@ export function analyzeCallGraph(sourceFiles = []) {
    const name=match[1],candidates=byName.get(name)||[];
    if(CALL_KEYWORDS.has(name))continue;
    const line=(source.slice(0,match.index).match(/\n/g)||[]).length+1;
-   const isDefinition=candidates.some(item=>item.definition.path===file.path&&item.definition.line===line);
+   const prefix=code.slice(Math.max(0,match.index-80),match.index);\n   const isDefinition=/\\b(?:function|def|fn|func)\\s*$/.test(prefix);
    if(isDefinition||!candidates.length)continue;
    if(candidates.length>1){ambiguous.push({name,path:file.path,line,candidates:candidates.map(item=>item.definition)});continue;}
    const target=candidates[0];
