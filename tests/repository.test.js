@@ -134,7 +134,7 @@ test("analyzeSymbols preserves same-named declarations in different files",()=>{
 test("analyzeCallGraph resolves unique textual call candidates and reports ambiguous names",()=>{
  const graph=analyzeCallGraph([
   {path:"src/math.js",source:"export function calculate() { return 1; }"},
-  {path:"src/app.js",source:"import { calculate } from './math.js';\\nfunction run() { calculate(); }"}
+  {path:"src/app.js",source:"import { calculate } from './math.js';\nfunction run() { calculate(); }"}
  ]);
  assert.equal(graph.functions,2);
  assert.equal(graph.edges.length,1);
