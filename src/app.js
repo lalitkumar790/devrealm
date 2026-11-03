@@ -1,7 +1,7 @@
 import { fetchDeveloper, fetchRecentCommits, fetchRepositoryTree, fetchRepositoryFile, fetchRepositoryHistory, fetchRepositorySymbols, fetchRepositoryCallGraph } from "./github.js";
 import { SAMPLE_PROFILE, SAMPLE_REPOS, LANGUAGE_COLORS } from "./data.js";
 import { createUniverse } from "./scene3d.js";
-import { compareTrees, createLineDiff, analyzeArchitecture, traceDependencies } from "./repository.js";
+import { compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, traceFunctionImpact } from "./repository.js";
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat().format(n||0);
 let profile=SAMPLE_PROFILE,repositories=SAMPLE_REPOS,universe,currentFolderPath="",architectureVisible=false,currentArchitecture=null;
 function pulse(repo){const age=repo.updated_at?Math.max(0,(Date.now()-new Date(repo.updated_at).getTime())/86400000):9999;return age<=30?"ACTIVE":age<=180?"COOLING":"DORMANT";}
