@@ -173,12 +173,12 @@ export function analyzeCallGraph(sourceFiles = []) {
  const edges=[],ambiguous=[];
  for(const file of sourceFiles){
   const source=file.source||"";
-  const callPattern=/\\b([A-Za-z_$][\\w$]*)\\s*\\(/g;
+  const callPattern=/\b([A-Za-z_$][\w$]*)\s*\(/g;
   let match;
   while((match=callPattern.exec(source))){
    const name=match[1],candidates=byName.get(name)||[];
    if(CALL_KEYWORDS.has(name))continue;
-   const line=(source.slice(0,match.index).match(/\\n/g)||[]).length+1;
+   const line=(source.slice(0,match.index).match(/\n/g)||[]).length+1;
    const isDefinition=candidates.some(item=>item.definition.path===file.path&&item.definition.line===line);
    if(isDefinition||!candidates.length)continue;
    if(candidates.length>1){ambiguous.push({name,path:file.path,line,candidates:candidates.map(item=>item.definition)});continue;}
