@@ -201,3 +201,17 @@ test("traceFunctionImpact follows transitive callers and callees",()=>{
  assert.deepEqual(appImpact.callees.map(item=>item.name),["middle","base"]);
  assert.deepEqual(appImpact.callers,[]);
 });
+
+
+test("analyzeCallGraph keeps same-line calls inside compact function bodies",()=>{
+ const graph=analyzeCallGraph([
+  {path:"base.js",source:"function base() {}"},
+  {path:"middle.js",source:"function middle() { base(); }"},
+  {path:"app.js",source:"function app() { middle(); }"}
+ ]);
+ assert.equal(graph.edges.length,2);
+ assert.equal(graph.functionEdges.length,2);
+ const impact=traceFunctionImpact(graph,{path:"base.js",line:1});
+ assert.deepEqual(impact.callers.map(item=>item.name).sort(),["app","middle"]);
+ assert.equal(graph.functionEdges.reduce((sum,edge)=>sum+edge.callSites,0),2);
+});
