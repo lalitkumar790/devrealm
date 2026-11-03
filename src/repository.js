@@ -242,7 +242,45 @@ export function analyzeCallGraph(sourceFiles = []) {
  const unique=new Map();
  for(const edge of edges)unique.set([edge.from.path,edge.from.line,edge.to.path,edge.to.line].join("::"),edge);
  const resolved=[...unique.values()];
+ const functionEdgeMap=new Map();
+ for(const edge of resolved){
+  if(!edge.from.caller)continue;
+  const key=[edge.from.caller.definition.path,edge.from.caller.definition.line,edge.to.path,edge.to.line].join("::");
+  if(!functionEdgeMap.has(key))functionEdgeMap.set(key,{from:edge.from.caller,to:{name:edge.name,...edge.to},callSites:0});
+  functionEdgeMap.get(key).callSites++;
+ }
+ const functionEdges=[...functionEdgeMap.values()];
  const callers=new Map(symbols.map(item=>[item.definition.path+"::"+item.name,0]));
  for(const edge of resolved){const key=edge.to.path+"::"+edge.name;callers.set(key,(callers.get(key)||0)+1);}
- return {functions:symbols.length,edges:resolved,ambiguous,unresolvedCount:0,callers:[...callers].map(([key,count])=>({key,count})).sort((a,b)=>b.count-a.count)};
+ return {functions:symbols.length,edges:resolved,functionEdges,ambiguous,unresolvedCount:0,callers:[...callers].map(([key,count])=>({key,count})).sort((a,b)=>b.count-a.count)};
+}
+
+
+export function traceFunctionImpact(graph={}, target={}) {
+ const edges=graph.functionEdges||[];
+ const keyOf=item=>item?item.definition.path+"::"+item.definition.line:null;
+ const targetKey=target.path+"::"+target.line;
+ const outgoing=new Map(),incoming=new Map();
+ for(const edge of edges){
+  const from=keyOf(edge.from),to=edge.to.path+"::"+edge.to.line;
+  if(!outgoing.has(from))outgoing.set(from,[]);outgoing.get(from).push(edge.to);
+  if(!incoming.has(to))incoming.set(to,[]);incoming.get(to).push(edge.from);
+ }
+ function walk(adjacency){
+  const seen=new Map(),queue=[targetKey];
+  while(queue.length){
+   const current=queue.shift();
+   for(const item of adjacency.get(current)||[]){
+    const key=keyOf(item);
+    if(key&&!seen.has(key)){seen.set(key,item);queue.push(key);}
+   }
+  }
+  seen.delete(targetKey);
+  return [...seen.values()];
+ }
+ const callers=walk(incoming),callees=walk(outgoing);
+ return {target,callers,callees,impacted:[...new Map([[targetKey,{path:target.path,line:target.line}],...callers.map(item=>[keyOf(item),item.definition])]).values()],edges:edges.filter(edge=>{
+  const visible=new Set([targetKey,...callers.map(keyOf),...callees.map(keyOf)]);
+  return visible.has(keyOf(edge.from))&&visible.has(edge.to.path+"::"+edge.to.line);
+ })};
 }
