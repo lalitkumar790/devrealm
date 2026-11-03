@@ -50,7 +50,7 @@ DevRealm reads public GitHub profile and repository metadata from the GitHub RES
 - [x] Bounded commit history timeline with revision tree reconstruction
 - [x] Adjacent revision tree diffs with in-world added/modified/deleted file markers
 - [x] On-demand line-level diffs for selected modified files
-- [x] Experimental function call candidates from sampled source, with unique-name resolution and explicit ambiguous-call reporting
+- [x] Experimental function call candidates from sampled source, with same-file/import-aware resolution and explicit ambiguous-call reporting
 - [ ] Rich biome rules from languages, topics and project metadata
 - [ ] Shareable world snapshots
 - [ ] GitLab, Codeberg and local Git providers
