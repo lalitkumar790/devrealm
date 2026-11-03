@@ -17,6 +17,7 @@ DevRealm turns repositories into explorable planets and groups them into systems
 - Enter a repository interior generated from its recursive Git tree: top-level folders become illuminated regions, and you can descend into nested folders with a breadcrumb-style up-one-level control. Files become floating artifacts. A bounded sample of JavaScript/TypeScript, Python, Rust, Go and Java source blobs is scanned for resolvable local imports; matched references appear as amber pathways.
 - Active repository metadata adds a visual activity halo.
 - Search any public GitHub username; sample universe works without credentials.
+- Filter the current galaxy live by repository name, full name, description, primary language or topic. Non-matching planets and their constellation links disappear; clearing the search restores the complete universe.
 - Minimal in-world HUD keeps the 3D scene central.
 
 ## Run locally
