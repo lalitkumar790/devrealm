@@ -226,14 +226,14 @@ export function analyzeCallGraph(sourceFiles = [], relations = []) {
  const edges=[],ambiguous=[],scopes=findFunctionScopes(sourceFiles,symbols);
  for(const file of sourceFiles){
   const source=file.source||"",code=maskNonCode(source),imported=importsByFile.get(file.path)||new Set();
-  const callPattern=/\\b([A-Za-z_$][\\w$]*)\\s*\\(/g;
+  const callPattern=/\b([A-Za-z_$][\w$]*)\s*\(/g;
   let match;
   while((match=callPattern.exec(code))){
    const name=match[1],candidates=byName.get(name)||[];
    if(CALL_KEYWORDS.has(name)||!candidates.length)continue;
-   const line=(source.slice(0,match.index).match(/\\n/g)||[]).length+1;
+   const line=(source.slice(0,match.index).match(/\n/g)||[]).length+1;
    const prefix=code.slice(Math.max(0,match.index-80),match.index);
-   const isDefinition=/\\b(?:function|def|fn|func)\\s*$/.test(prefix);
+   const isDefinition=/\b(?:function|def|fn|func)\s*$/.test(prefix);
    if(isDefinition)continue;
    const sameFile=candidates.filter(item=>item.definition.path===file.path);
    const importedCandidates=candidates.filter(item=>imported.has(item.definition.path));
