@@ -148,3 +148,19 @@ test("analyzeCallGraph resolves unique textual call candidates and reports ambig
  assert.equal(ambiguous.edges.length,0);
  assert.equal(ambiguous.ambiguous.length,1);
 });
+
+
+test("analyzeCallGraph ignores calls written only in comments and string literals",()=>{
+ const graph=analyzeCallGraph([
+  {path:"src/target.js",source:"export function execute() { return 1; }"},
+  {path:"src/consumer.js",source:[
+   "// execute();",
+   "/* execute(); */",
+   "const note = \"execute()\";",
+   "function run() { execute(); }"
+  ].join("\\n")}
+ ]);
+ assert.equal(graph.edges.length,1);
+ assert.equal(graph.edges[0].name,"execute");
+ assert.equal(graph.edges[0].from.line,4);
+});
