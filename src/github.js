@@ -82,3 +82,13 @@ export async function fetchRepositorySymbols(repo, tree) {
  const results=await Promise.all(selected.map(async file=>{try{return {path:file.path,source:await fetchRepositoryFile(repo,file)};}catch{return null;}}));
  return (await import("./repository.js")).analyzeSymbols(results.filter(Boolean));
 }
+
+
+export async function fetchRepositoryCallGraph(repo, tree) {
+ const owner=repo.owner?.login;
+ if(!owner)throw new Error("Repository owner information is unavailable.");
+ const paths=tree.sampledSourcePaths||[],files=tree.files||[];
+ const selected=paths.map(path=>files.find(file=>file.path===path)).filter(Boolean);
+ const results=await Promise.all(selected.map(async file=>{try{return {path:file.path,source:await fetchRepositoryFile(repo,file)};}catch{return null;}}));
+ return (await import("./repository.js")).analyzeCallGraph(results.filter(Boolean));
+}
