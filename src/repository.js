@@ -188,7 +188,7 @@ export function analyzeCallGraph(sourceFiles = []) {
  for(const symbol of symbols){if(!byName.has(symbol.name))byName.set(symbol.name,[]);byName.get(symbol.name).push(symbol);}
  const edges=[],ambiguous=[];
  for(const file of sourceFiles){
-  const source=file.source||"";
+  const source=file.source||"",code=maskNonCode(source);
   const callPattern=/\b([A-Za-z_$][\w$]*)\s*\(/g;
   let match;
   while((match=callPattern.exec(code))){
