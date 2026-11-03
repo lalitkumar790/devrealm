@@ -51,7 +51,7 @@ $("view-diff").addEventListener("click",async()=>{
  }catch(error){$("source-code").textContent=error.message;$("source-meta").textContent="Revision diff unavailable";}
  finally{button.disabled=false;button.textContent="VIEW REVISION DIFF ↗";}
 });
-\n$("close-source").addEventListener("click",()=>$("source-viewer").hidden=true);
+$("close-source").addEventListener("click",()=>$("source-viewer").hidden=true);
 
 
 
