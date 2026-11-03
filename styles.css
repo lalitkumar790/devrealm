@@ -38,3 +38,11 @@
 .dependency-tools{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px}.dependency-tools button{padding:8px 5px;border:1px solid #79b9dc55;background:#0b202a;color:#b8e5f2;font:7px "DM Mono",monospace;cursor:pointer}.dependency-tools button:hover{border-color:#a4f5d7;color:#a4f5d7}
 
 .symbol-search{margin:9px 0;padding-top:9px;border-top:1px solid #ffffff18}.symbol-search input{box-sizing:border-box;width:100%;padding:9px;background:#06101a;border:1px solid #79b9dc55;color:#d7edf3;font:9px "DM Mono",monospace}.symbol-search>button{width:100%;margin:6px 0;padding:9px;background:#12302c;border:1px solid #8cebd066;color:#a4f5d7;font:8px "DM Mono",monospace;cursor:pointer}.symbol-search>button:disabled{opacity:.5}
+
+
+/* Startup safety net: a visible starfield remains if WebGL or the module CDN fails. */
+#fallback-galaxy{position:absolute;inset:0;display:none;overflow:hidden;background:radial-gradient(ellipse at 50% 48%,#163b4c 0%,#0b152b 27%,#03060d 70%)}
+#fallback-galaxy::before{content:"";position:absolute;inset:-50%;background-image:radial-gradient(2px 2px at 12% 18%,#d8f7ff 45%,transparent 60%),radial-gradient(1px 1px at 32% 61%,#a4f5d7 45%,transparent 60%),radial-gradient(2px 2px at 71% 28%,#d8f7ff 45%,transparent 60%),radial-gradient(1px 1px at 83% 77%,#a4f5d7 45%,transparent 60%),radial-gradient(1px 1px at 57% 83%,#fff 45%,transparent 60%),radial-gradient(1px 1px at 24% 87%,#fff 45%,transparent 60%);background-size:260px 220px;opacity:.8}
+#fallback-galaxy::after{content:"";position:absolute;left:50%;top:49%;width:min(30vw,240px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 32%,#effff9 0%,#8cebd0 7%,#2a8a7c 18%,#163f57 42%,transparent 69%);filter:drop-shadow(0 0 35px #4bd5b288)}
+#fallback-galaxy.visible{display:block}
+.boot-failed #world{display:none}
