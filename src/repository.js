@@ -235,7 +235,8 @@ export function analyzeCallGraph(sourceFiles = []) {
    if(candidates.length>1){ambiguous.push({name,path:file.path,line,candidates:candidates.map(item=>item.definition)});continue;}
    const target=candidates[0];
    if(target.definition.path===file.path&&target.definition.line===line)continue;
-   const caller=scopeAt(scopes,file.path,line);\n   edges.push({from:{path:file.path,line,caller:caller?{name:caller.name,definition:caller.definition}:null},to:target.definition,name,confidence:"textual-candidate"});
+   const caller=scopeAt(scopes,file.path,line);
+   edges.push({from:{path:file.path,line,caller:caller?{name:caller.name,definition:caller.definition}:null},to:target.definition,name,confidence:"textual-candidate"});
   }
  }
  const unique=new Map();
