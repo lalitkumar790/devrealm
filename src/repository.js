@@ -258,7 +258,7 @@ export function analyzeCallGraph(sourceFiles = []) {
 
 export function traceFunctionImpact(graph={}, target={}) {
  const edges=graph.functionEdges||[];
- const keyOf=item=>item?item.definition.path+"::"+item.definition.line:null;
+ const keyOf=item=>item?(item.definition?item.definition.path+"::"+item.definition.line:item.path+"::"+item.line):null;
  const targetKey=target.path+"::"+target.line;
  const outgoing=new Map(),incoming=new Map();
  for(const edge of edges){
