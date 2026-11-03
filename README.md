@@ -43,7 +43,8 @@ DevRealm reads public GitHub profile and repository metadata from the GitHub RES
 - [x] Repository inspection and activity metadata
 - [x] First repository interior: map folders and files from the recursive Git tree
 - [x] In-world source previews for selected files
-- [x] Sampled cross-language local import relationships (JavaScript/TypeScript, Python, Rust, Go and Java)\n- [x] Inferred architecture intelligence: entry candidates, dependency hubs, isolated sampled modules, module clusters and circular-dependency detection
+- [x] Sampled cross-language local import relationships (JavaScript/TypeScript, Python, Rust, Go and Java)
+- [x] Inferred architecture intelligence: entry candidates, dependency hubs, isolated sampled modules, module clusters and circular-dependency detection
 - [x] Interactive dependency tracing: transitive upstream/downstream paths, impact set, edge highlighting and unrelated-file dimming
 - [x] Sampled symbol index for function/class declarations and cross-file references, with jump-to-source context
 - [x] Bounded commit history timeline with revision tree reconstruction
