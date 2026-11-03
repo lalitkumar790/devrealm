@@ -158,8 +158,39 @@ export function analyzeSymbols(sourceFiles = []) {
   {kind:"class",re:/\b(?:class|struct|trait|interface|enum)\s+([A-Za-z_$][\w$]*)/g},
   {kind:"function",re:/\b(?:def|fn|func)\s+([A-Za-z_$][\w$]*)/g}
  ];
- for(const file of sourceFiles){for(const pattern of patterns){pattern.re.lastIndex=0;let match;while((match=pattern.re.exec(file.source||""))){const name=match[1];if(!definitions.has(name))definitions.set(name,{name,kind:pattern.kind,definition:{path:file.path,line:(file.source.slice(0,match.index).match(/\n/g)||[]).length+1},references:[]});}}}
+ for(const file of sourceFiles){for(const pattern of patterns){pattern.re.lastIndex=0;let match;while((match=pattern.re.exec(file.source||""))){const name=match[1];if(!definitions.has(file.path+"::"+name))definitions.set(file.path+"::"+name,{name,kind:pattern.kind,definition:{path:file.path,line:(file.source.slice(0,match.index).match(/\n/g)||[]).length+1},references:[]});}}}
  const symbols=[...definitions.values()];
  for(const symbol of symbols){const re=new RegExp("\\b"+symbol.name+"\\b","g");for(const file of sourceFiles){if(file.path===symbol.definition.path)continue;re.lastIndex=0;let match;while((match=re.exec(file.source||""))){const line=(file.source.slice(0,match.index).match(/\n/g)||[]).length+1;if(!symbol.references.some(ref=>ref.path===file.path&&ref.line===line))symbol.references.push({path:file.path,line});}}}
  return symbols.map(symbol=>({...symbol,referenceCount:symbol.references.length})).sort((a,b)=>b.referenceCount-a.referenceCount||a.name.localeCompare(b.name));
+}
+
+
+const CALL_KEYWORDS = new Set(["if","for","while","switch","catch","function","return","typeof","new","class","def","fn","func","with","super","this","print","require","import"]);
+export function analyzeCallGraph(sourceFiles = []) {
+ const symbols=analyzeSymbols(sourceFiles).filter(symbol=>symbol.kind==="function");
+ const byName=new Map();
+ for(const symbol of symbols){if(!byName.has(symbol.name))byName.set(symbol.name,[]);byName.get(symbol.name).push(symbol);}
+ const edges=[],ambiguous=[];
+ for(const file of sourceFiles){
+  const source=file.source||"";
+  const callPattern=/\\b([A-Za-z_$][\\w$]*)\\s*\\(/g;
+  let match;
+  while((match=callPattern.exec(source))){
+   const name=match[1],candidates=byName.get(name)||[];
+   if(CALL_KEYWORDS.has(name))continue;
+   const line=(source.slice(0,match.index).match(/\\n/g)||[]).length+1;
+   const isDefinition=candidates.some(item=>item.definition.path===file.path&&item.definition.line===line);
+   if(isDefinition||!candidates.length)continue;
+   if(candidates.length>1){ambiguous.push({name,path:file.path,line,candidates:candidates.map(item=>item.definition)});continue;}
+   const target=candidates[0];
+   if(target.definition.path===file.path&&target.definition.line===line)continue;
+   edges.push({from:{path:file.path,line},to:target.definition,name,confidence:"textual-candidate"});
+  }
+ }
+ const unique=new Map();
+ for(const edge of edges)unique.set([edge.from.path,edge.from.line,edge.to.path,edge.to.line].join("::"),edge);
+ const resolved=[...unique.values()];
+ const callers=new Map(symbols.map(item=>[item.definition.path+"::"+item.name,0]));
+ for(const edge of resolved){const key=edge.to.path+"::"+edge.name;callers.set(key,(callers.get(key)||0)+1);}
+ return {functions:symbols.length,edges:resolved,ambiguous,unresolvedCount:0,callers:[...callers].map(([key,count])=>({key,count})).sort((a,b)=>b.count-a.count)};
 }
