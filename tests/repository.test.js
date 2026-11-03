@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols } from "../src/repository.js";
+import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols, analyzeCallGraph } from "../src/repository.js";
 
 test("analyzeTree counts files, source files and directory contents", () => {
   const result = analyzeTree([
@@ -119,4 +119,32 @@ test("analyzeSymbols indexes declarations and cross-file references",()=>{
  assert.equal(total.definition.path,"src/service.js");
  assert.equal(total.referenceCount,2);
  assert.ok(symbols.some(item=>item.name==="build_model"&&item.kind==="function"));
+});
+
+
+test("analyzeSymbols preserves same-named declarations in different files",()=>{
+ const symbols=analyzeSymbols([
+  {path:"src/a.js",source:"export function load() { return 1; }"},
+  {path:"src/b.js",source:"export function load() { return 2; }"}
+ ]);
+ assert.equal(symbols.filter(item=>item.name==="load").length,2);
+ assert.deepEqual(symbols.map(item=>item.definition.path).sort(),["src/a.js","src/b.js"]);
+});
+
+test("analyzeCallGraph resolves unique textual call candidates and reports ambiguous names",()=>{
+ const graph=analyzeCallGraph([
+  {path:"src/math.js",source:"export function calculate() { return 1; }"},
+  {path:"src/app.js",source:"import { calculate } from './math.js';\\nfunction run() { calculate(); }"}
+ ]);
+ assert.equal(graph.functions,2);
+ assert.equal(graph.edges.length,1);
+ assert.equal(graph.edges[0].name,"calculate");
+ assert.equal(graph.edges[0].to.path,"src/math.js");
+ const ambiguous=analyzeCallGraph([
+  {path:"a.js",source:"function build() {}"},
+  {path:"b.js",source:"function build() {}"},
+  {path:"c.js",source:"build();"}
+ ]);
+ assert.equal(ambiguous.edges.length,0);
+ assert.equal(ambiguous.ambiguous.length,1);
 });
