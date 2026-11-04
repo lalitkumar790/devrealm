@@ -282,7 +282,8 @@ export function analyzeVariableFlow(steps = []) {
    const record=variables.get(name);record.lastUpdatedAt=step.line;record.writes++;
   }
   const expression=declaration?.[2]||assignment?.[2]||returned?.[1]||code;
-  const called=new Set([...expression.matchAll(/\\b([A-Za-z_$][\\w$]*)\\s*\\(/g)].map(match=>match[1]));\n  const reads=[...new Set([...expression.matchAll(identifier)].map(match=>match[0]).filter(name=>!reserved.has(name)&&!writes.includes(name)&&!called.has(name)))];
+  const called=new Set([...expression.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)].map(match=>match[1]));
+  const reads=[...new Set([...expression.matchAll(identifier)].map(match=>match[0]).filter(name=>!reserved.has(name)&&!writes.includes(name)&&!called.has(name)))];
   for(const name of reads){
    if(!variables.has(name))variables.set(name,{name,firstDefinedAt:null,lastUpdatedAt:null,writes:0,reads:0});
    variables.get(name).reads++;
