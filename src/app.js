@@ -1,9 +1,9 @@
 import { fetchDeveloper, fetchRecentCommits, fetchRepositoryTree, fetchRepositoryFile, fetchRepositoryHistory, fetchRepositorySymbols, fetchRepositoryCallGraph } from "./github.js";
 import { SAMPLE_PROFILE, SAMPLE_REPOS, LANGUAGE_COLORS } from "./data.js";
 import { createUniverse } from "./scene3d.js";
-import { compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, traceFunctionImpact } from "./repository.js";
+import { compareTrees, compareRepositories, createLineDiff, analyzeArchitecture, traceDependencies, traceFunctionImpact } from "./repository.js";
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat().format(n||0);
-let profile=SAMPLE_PROFILE,repositories=SAMPLE_REPOS,universe,currentFolderPath="",architectureVisible=false,currentArchitecture=null;
+let profile=SAMPLE_PROFILE,repositories=SAMPLE_REPOS,universe,currentFolderPath="",architectureVisible=false,currentArchitecture=null,comparisonSelection=[];
 function pulse(repo){const age=repo.updated_at?Math.max(0,(Date.now()-new Date(repo.updated_at).getTime())/86400000):9999;return age<=30?"ACTIVE":age<=180?"COOLING":"DORMANT";}
 function showRepo(repo,node){
  window.selectedRepository=repo;window.selectedNode=node||null;
@@ -13,9 +13,25 @@ function showRepo(repo,node){
  $("load-history").hidden=Boolean(node);$("analyze-architecture").hidden=!window.currentRepositoryTree;$("architecture-panel").hidden=!architectureVisible;$("history-panel").hidden=true;$("enter-repository").hidden=Boolean(node);$("exit-repository").hidden=!node;$("view-source").hidden=!(node&&node.type==="file");const changed=window.currentRevisionDiff?.modified?.find(item=>item.after.path===node?.path);$("view-diff").hidden=!(node&&node.type==="file"&&changed);$("source-viewer").hidden=true;$("enter-folder").hidden=!(node&&node.type==="directory");$("up-folder").hidden=!currentFolderPath;
  $("planet-swatch").style.background="radial-gradient(circle at 32% 28%,#fff,"+color+" 17%,#183747 53%,#050b14 80%)";
  $("planet-swatch").style.boxShadow="0 0 38px "+color+"66,inset -10px -8px 16px #0009";
- const tags=node?[node.type.toUpperCase(),node.path.split("/").length+" LEVEL"]:[repo.language||"Other",pulse(repo),repo.visibility||"public",repo.default_branch||"no default branch",...(repo.topics||[]).slice(0,4)];$("detail-tags").replaceChildren(...tags.map(value=>{const tag=document.createElement("span");tag.textContent=value;return tag;}));
+ const tags=node?[node.type.toUpperCase(),node.path.split("/").length+" LEVEL"]:[repo.language||"Other",pulse(repo),repo.visibility||"public",repo.default_branch||"no default branch",...(repo.topics||[]).slice(0,4)];$("detail-tags").replaceChildren(...tags.map(value=>{const tag=document.createElement("span");tag.textContent=value;return tag;}));renderComparison();
  $("detail-facts").textContent=node?(node.type==="directory"?fmt(node.files)+" FILES · "+fmt(node.bytes)+" BYTES":fmt(node.size)+" BYTES"):"★ "+fmt(repo.stargazers_count)+" STARS     ⑂ "+fmt(repo.forks_count)+" FORKS     ◫ "+fmt(repo.open_issues_count)+" OPEN ISSUES";
  $("detail-link").href=repo.html_url;$("detail-link").textContent=node?"OPEN REPOSITORY ON GITHUB ↗":"OPEN REPOSITORY ↗";$("inspector").classList.add("open");
+}
+function renderComparison(){
+ const panel=$("compare-panel"),results=$("compare-results");
+ $("compare-count").textContent=comparisonSelection.length+" / 2";
+ $("add-compare").textContent=comparisonSelection.some(repo=>repo.id===window.selectedRepository?.id)?"✓ ADDED TO COMPARISON":"＋ ADD TO COMPARISON";
+ panel.hidden=comparisonSelection.length===0;results.replaceChildren();
+ if(comparisonSelection.length<2){$("compare-status").textContent=comparisonSelection.length?"Now select a second planet to compare.":"Select two repositories to compare.";return;}
+ const result=compareRepositories(comparisonSelection[0],comparisonSelection[1]);
+ $("compare-status").textContent=result.first.fullName+"  VS  "+result.second.fullName;
+ const table=document.createElement("div");table.className="compare-table";
+ const rows=[["PRIMARY LANGUAGE",result.first.language,result.second.language],["STARS",fmt(result.metrics.stargazers_count.first),fmt(result.metrics.stargazers_count.second)],["FORKS",fmt(result.metrics.forks_count.first),fmt(result.metrics.forks_count.second)],["OPEN ISSUES",fmt(result.metrics.open_issues_count.first),fmt(result.metrics.open_issues_count.second)],["SIZE",fmt(result.metrics.size.first)+" KB",fmt(result.metrics.size.second)+" KB"]];
+ for(const [label,left,right] of rows){const row=document.createElement("div");row.className="compare-row";for(const value of [label,left,right]){const cell=document.createElement("span");cell.textContent=value;row.append(cell);}table.append(row);}
+ results.append(table);
+ const topic=document.createElement("div");topic.className="compare-topics";
+ const addTopicGroup=(label,values)=>{const group=document.createElement("div"),heading=document.createElement("strong"),body=document.createElement("span");heading.textContent=label;body.textContent=values.length?values.join(" · "):"None";group.append(heading,body);topic.append(group);};
+ addTopicGroup("SHARED TOPICS",result.sharedTopics);addTopicGroup(result.first.name+" ONLY",result.firstOnlyTopics);addTopicGroup(result.second.name+" ONLY",result.secondOnlyTopics);results.append(topic);
 }
 function renderProfile(){$("world-title").textContent=(profile.name||profile.login).toUpperCase()+"'S EXPANSE";$("world-subtitle").textContent="@"+profile.login+" · "+repositories.length+" public repositories";$("repo-count").textContent=String(repositories.length).padStart(2,"0");}
 function updatePlanetFilter(){
@@ -24,7 +40,7 @@ function updatePlanetFilter(){
  $("status").textContent=query?("Showing "+visible+" of "+repositories.length+" repositories matching “"+query+"”."):"Galaxy view · "+repositories.length+" repositories mapped.";
 }
 async function load(username){
- window.currentRevisionDiff=null;window.currentRepositoryTree=null;window.selectedRepository=null;window.selectedNode=null;architectureVisible=false;$("architecture-panel").hidden=true;$("analyze-architecture").hidden=true;$("inspector").classList.remove("open");$("status").textContent="Connecting to GitHub and loading public repository metadata…";
+ window.currentRevisionDiff=null;window.currentRepositoryTree=null;comparisonSelection=[];renderComparison();window.selectedRepository=null;window.selectedNode=null;architectureVisible=false;$("architecture-panel").hidden=true;$("analyze-architecture").hidden=true;$("inspector").classList.remove("open");$("status").textContent="Connecting to GitHub and loading public repository metadata…";
  const button=$("generate");button.disabled=true;button.textContent="BUILDING…";$("status").textContent="Fetching GitHub profile and repository metadata…";$("planet-filter").value="";$("planet-filter").disabled=false;
  try{const data=await fetchDeveloper(username);profile=data.profile;repositories=data.repositories;renderProfile();universe.setRepositories(repositories,profile.login);$("planet-filter-count").textContent=repositories.length+" / "+repositories.length;$("status").textContent=`Universe formed from ${repositories.length} public repositories. Drag to orbit and click a planet.`;fetchRecentCommits(profile.login,repositories).then(commits=>{$("status").textContent+=` · ${commits.length} recent commit signals sampled.`;}).catch(()=>{});$("inspector").classList.remove("open");}
  catch(error){$("status").textContent=error.message;}finally{button.disabled=false;button.textContent="GENERATE WORLD ↗";}
@@ -32,6 +48,14 @@ async function load(username){
 $("search-form").addEventListener("submit",e=>{e.preventDefault();load($("username").value.trim());});
 $("planet-filter").addEventListener("input",updatePlanetFilter);
 $("close-inspector").addEventListener("click",()=>$("inspector").classList.remove("open"));
+$("add-compare").addEventListener("click",()=>{
+ const repo=window.selectedRepository;if(!repo)return;
+ if(comparisonSelection.some(item=>item.id===repo.id)){$("compare-status").textContent="This repository is already selected.";return;}
+ if(comparisonSelection.length>=2)comparisonSelection.shift();
+ comparisonSelection.push(repo);renderComparison();
+});
+$("clear-compare").addEventListener("click",()=>{comparisonSelection=[];renderComparison();});
+
 $("load-history").addEventListener("click",async()=>{const repo=window.selectedRepository;if(!repo)return;const button=$("load-history");button.disabled=true;button.textContent="LOADING HISTORY…";$("history-panel").hidden=false;$("history-status").textContent="Fetching recent commits…";try{stopReplay();window.repositoryHistory=await fetchRepositoryHistory(repo,30);$("history-play").disabled=window.repositoryHistory.length<2;const slider=$("history-slider");slider.min="0";slider.max=String(Math.max(0,window.repositoryHistory.length-1));slider.value="0";slider.disabled=window.repositoryHistory.length===0;$("history-index").textContent=window.repositoryHistory.length?((Number(slider.value)+1)+" / "+window.repositoryHistory.length):"NO REVISIONS";$("history-status").textContent=window.repositoryHistory.length+" revisions · newest to oldest";await showHistoricalRevision(Number(slider.value));}catch(error){$("history-status").textContent=error.message;}finally{button.disabled=false;button.textContent="RELOAD HISTORY";}});
 const historicalTreeCache=new Map();let revisionRequestId=0,replayTimer=null,replayPlaying=false;
 async function historicalTree(repo,item){if(historicalTreeCache.has(item.tree))return historicalTreeCache.get(item.tree);const pending=fetchRepositoryTree(repo,item.tree,false);historicalTreeCache.set(item.tree,pending);try{const tree=await pending;if(historicalTreeCache.size>8)historicalTreeCache.delete(historicalTreeCache.keys().next().value);return tree;}catch(error){historicalTreeCache.delete(item.tree);throw error;}}
