@@ -54,3 +54,21 @@
 .planet-filter span{white-space:nowrap;color:#a4f5d7;font:8px "DM Mono",monospace}
 .planet-filter input:disabled{opacity:.4}
 @media(max-width:640px){.hero{width:calc(100vw - 32px);left:16px;top:94px}.planet-filter input{font-size:8px}.planet-filter span{font-size:7px}}
+
+
+.compare-actions{display:flex;gap:7px;margin:11px 0 8px}
+.compare-actions button{padding:8px 9px;border:1px solid #8cebd066;background:#102a2b;color:#a4f5d7;font:8px "DM Mono",monospace;letter-spacing:.06em;cursor:pointer}
+.compare-actions button:last-child{border-color:#ffffff25;background:#0b1420;color:#9aabb5}
+.compare-panel{margin:8px 0 12px;padding:10px;border:1px solid #8cebd044;background:#07131deF}
+.compare-panel[hidden]{display:none}
+.compare-heading{display:flex;justify-content:space-between;color:#a4f5d7;font:8px "DM Mono",monospace;letter-spacing:.1em}
+.compare-heading span:last-child{color:#829ba7}
+#compare-status{margin:8px 0;color:#a9bbc5;font:8px/1.5 "DM Mono",monospace;overflow-wrap:anywhere}
+.compare-table{display:flex;flex-direction:column;gap:3px}
+.compare-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:5px;padding:7px 5px;background:#ffffff08}
+.compare-row span{min-width:0;overflow-wrap:anywhere;color:#d6e8e9;font:8px "DM Mono",monospace}
+.compare-row span:first-child{color:#8199a5}
+.compare-topics{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.compare-topics div{display:flex;flex-direction:column;gap:4px}
+.compare-topics strong{color:#8cebd0;font:7px "DM Mono",monospace;letter-spacing:.08em}
+.compare-topics span{color:#aabac3;font:8px/1.5 "DM Mono",monospace;overflow-wrap:anywhere}
