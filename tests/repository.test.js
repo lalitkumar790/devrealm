@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols, analyzeCallGraph, traceFunctionImpact, matchesRepository, compareRepositories } from "../src/repository.js";
+import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols, analyzeCallGraph, traceFunctionImpact, matchesRepository, compareRepositories, extractFunctionFlow } from "../src/repository.js";
 
 test("analyzeTree counts files, source files and directory contents", () => {
   const result = analyzeTree([
@@ -288,4 +288,34 @@ test("compareRepositories reports metric deltas and topic overlap without mutati
  assert.deepEqual(result.metrics.stargazers_count,{first:10,second:25,delta:15});
  assert.deepEqual(result.metrics.size,{first:120,second:240,delta:120});
  assert.deepEqual(first.topics,["robotics","ros2"]);
+});
+
+
+test("extractFunctionFlow creates ordered, source-linked static execution steps",()=>{
+ const source=[
+  "export async function calculate(input) {",
+  "  const normalized = input.trim();",
+  "  if (!normalized) {",
+  "    throw new Error('empty');",
+  "  }",
+  "  const result = await transform(normalized);",
+  "  return result;",
+  "}"
+ ].join("\\n");
+ const flow=extractFunctionFlow([{path:"src/calculate.js",source}],{path:"src/calculate.js",line:1,name:"calculate"});
+ assert.equal(flow.functionName,"calculate");
+ assert.ok(flow.steps.length>=5);
+ assert.equal(flow.steps[0].kind,"declaration");
+ assert.ok(flow.steps.some(step=>step.kind==="condition"));
+ assert.ok(flow.steps.some(step=>step.kind==="exception"));
+ assert.ok(flow.steps.some(step=>step.kind==="await"));
+ assert.equal(flow.steps.at(-1).kind,"return");
+ assert.deepEqual(flow.steps.find(step=>step.kind==="await").calls,["transform"]);
+ assert.ok(flow.steps.every((step,index)=>step.index===index+1&&step.line>0));
+});
+
+test("extractFunctionFlow reports unsupported or missing function bodies safely",()=>{
+ const flow=extractFunctionFlow([{path:"src/a.js",source:"const value = 1;"}],{path:"src/a.js",line:1,name:"missing"});
+ assert.equal(flow.steps.length,0);
+ assert.match(flow.reason,/could not be located/);
 });
