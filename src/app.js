@@ -1,9 +1,9 @@
 import { fetchDeveloper, fetchRecentCommits, fetchRepositoryTree, fetchRepositoryFile, fetchRepositoryHistory, fetchRepositorySymbols, fetchRepositoryCallGraph } from "./github.js";
 import { SAMPLE_PROFILE, SAMPLE_REPOS, LANGUAGE_COLORS } from "./data.js";
 import { createUniverse } from "./scene3d.js";
-import { compareTrees, compareRepositories, createLineDiff, analyzeArchitecture, traceDependencies, traceFunctionImpact, extractFunctionFlow } from "./repository.js";
+import { compareTrees, compareRepositories, createLineDiff, analyzeArchitecture, traceDependencies, traceFunctionImpact, extractFunctionFlow, analyzeVariableFlow } from "./repository.js";
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat().format(n||0);
-let profile=SAMPLE_PROFILE,repositories=SAMPLE_REPOS,universe,currentFolderPath="",architectureVisible=false,currentArchitecture=null,comparisonSelection=[],currentCallGraph=null,codeMapMode="modules",selectedFlowNode=null,flowSteps=[],flowIndex=0;
+let profile=SAMPLE_PROFILE,repositories=SAMPLE_REPOS,universe,currentFolderPath="",architectureVisible=false,currentArchitecture=null,comparisonSelection=[],currentCallGraph=null,codeMapMode="modules",selectedFlowNode=null,flowSteps=[],flowIndex=0,currentDataFlow=null;
 function pulse(repo){const age=repo.updated_at?Math.max(0,(Date.now()-new Date(repo.updated_at).getTime())/86400000):9999;return age<=30?"ACTIVE":age<=180?"COOLING":"DORMANT";}
 function showRepo(repo,node){
  window.selectedRepository=repo;window.selectedNode=node||null;
@@ -40,7 +40,7 @@ function updatePlanetFilter(){
  $("status").textContent=query?("Showing "+visible+" of "+repositories.length+" repositories matching “"+query+"”."):"Galaxy view · "+repositories.length+" repositories mapped.";
 }
 async function load(username){
- window.currentRevisionDiff=null;window.currentRepositoryTree=null;currentCallGraph=null;selectedFlowNode=null;flowSteps=[];flowIndex=0;renderFlowStep();comparisonSelection=[];renderComparison();window.selectedRepository=null;window.selectedNode=null;architectureVisible=false;$("architecture-panel").hidden=true;$("analyze-architecture").hidden=true;$("inspector").classList.remove("open");$("status").textContent="Connecting to GitHub and loading public repository metadata…";
+ window.currentRevisionDiff=null;window.currentRepositoryTree=null;currentCallGraph=null;selectedFlowNode=null;flowSteps=[];flowIndex=0;currentDataFlow=null;renderDataFlow();renderFlowStep();comparisonSelection=[];renderComparison();window.selectedRepository=null;window.selectedNode=null;architectureVisible=false;$("architecture-panel").hidden=true;$("analyze-architecture").hidden=true;$("inspector").classList.remove("open");$("status").textContent="Connecting to GitHub and loading public repository metadata…";
  const button=$("generate");button.disabled=true;button.textContent="BUILDING…";$("status").textContent="Fetching GitHub profile and repository metadata…";$("planet-filter").value="";$("planet-filter").disabled=false;
  try{const data=await fetchDeveloper(username);profile=data.profile;repositories=data.repositories;renderProfile();universe.setRepositories(repositories,profile.login);$("planet-filter-count").textContent=repositories.length+" / "+repositories.length;$("status").textContent=`Universe formed from ${repositories.length} public repositories. Drag to orbit and click a planet.`;fetchRecentCommits(profile.login,repositories).then(commits=>{$("status").textContent+=` · ${commits.length} recent commit signals sampled.`;}).catch(()=>{});$("inspector").classList.remove("open");}
  catch(error){$("status").textContent=error.message;}finally{button.disabled=false;button.textContent="GENERATE WORLD ↗";}
@@ -156,6 +156,26 @@ $("function-map-tab").addEventListener("click",()=>{codeMapMode="functions";$("f
 $("code-map-filter").addEventListener("input",renderCodeMap);
 $("code-map-zoom").addEventListener("input",applyCodeMapZoom);
 $("code-map-reset").addEventListener("click",()=>{$("code-map-filter").value="";$("code-map-zoom").value="100";renderCodeMap();});
+function renderDataFlow(){
+ const stage=$("data-flow-map"),summary=$("data-flow-summary");stage.replaceChildren();
+ if(!currentDataFlow||!currentDataFlow.variables.length){summary.textContent="No variables detected";stage.textContent="No variable relationships were inferred from this function.";return;}
+ const data=currentDataFlow,variables=data.variables,events=data.events;
+ summary.textContent=data.metrics.variables+" vars · "+data.metrics.reads+" inferred links · "+data.metrics.unresolved+" external";
+ const width=720,rowHeight=76,height=Math.max(150,variables.length*rowHeight+45),svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+ svg.setAttribute("viewBox",`0 0 ${width} ${height}`);svg.setAttribute("role","img");svg.setAttribute("aria-label","Inferred variable definition and use graph");
+ const ns=svg.namespaceURI,positions=new Map();
+ variables.forEach((variable,index)=>positions.set(variable.name,{x:110+(index%3)*250,y:55+Math.floor(index/3)*rowHeight}));
+ for(const edge of data.edges){const from=positions.get(edge.from),to=positions.get(edge.to);if(!from||!to)continue;const path=document.createElementNS(ns,"path");const mid=(from.x+to.x)/2;path.setAttribute("d",`M ${from.x+65} ${from.y} C ${mid} ${from.y}, ${mid} ${to.y}, ${to.x-65} ${to.y}`);path.setAttribute("class","data-flow-edge");svg.append(path);}
+ for(const variable of variables){const point=positions.get(variable.name),group=document.createElementNS(ns,"g");group.setAttribute("class","data-flow-node");group.setAttribute("transform",`translate(${point.x} ${point.y})`);
+  const rect=document.createElementNS(ns,"rect");rect.setAttribute("x","-65");rect.setAttribute("y","-22");rect.setAttribute("width","130");rect.setAttribute("height","44");rect.setAttribute("rx","7");group.append(rect);
+  const label=document.createElementNS(ns,"text");label.setAttribute("text-anchor","middle");label.setAttribute("y","4");label.textContent=variable.name;group.append(label);
+  const meta=document.createElementNS(ns,"text");meta.setAttribute("text-anchor","middle");meta.setAttribute("y","36");meta.setAttribute("class","data-flow-meta");meta.textContent=variable.firstDefinedAt===null?"INPUT / EXTERNAL":"L"+variable.firstDefinedAt+" · "+variable.reads+" reads";group.append(meta);
+  group.setAttribute("tabindex","0");group.setAttribute("role","button");group.setAttribute("aria-label",variable.name+" variable, "+variable.reads+" reads");
+  const activate=()=>{const event=events.find(item=>item.writes.includes(variable.name)||item.reads.includes(variable.name));if(!event)return;const stepIndex=flowSteps.findIndex(item=>item.line===event.line);if(stepIndex>=0){flowIndex=stepIndex;renderFlowStep();}};
+  group.addEventListener("click",activate);group.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();activate();}});svg.append(group);
+ }
+ stage.append(svg);
+}
 function renderFlowStep(){
  const step=flowSteps[flowIndex],total=flowSteps.length;
  $("flow-position").textContent=total?(flowIndex+1)+" / "+total:"—";
@@ -174,7 +194,7 @@ $("trace-function").addEventListener("click",async()=>{
  const node=selectedFlowNode,repo=window.selectedRepository,tree=window.currentRepositoryTree;if(!node||!repo||!tree)return;
  const button=$("trace-function"),file=tree.files.find(item=>item.path===node.path);if(!file)return;
  button.disabled=true;button.textContent="PARSING FUNCTION…";$("flow-step").textContent="Reading selected function and classifying source statements…";
- try{const source=await fetchRepositoryFile(repo,file),flow=extractFunctionFlow([{path:node.path,source}],{path:node.path,line:node.line,name:node.label});flowSteps=flow.steps;flowIndex=0;$("flow-note").textContent=flow.reason||("Static source map for "+flow.functionName+" · "+flow.path+":"+flow.startLine+"–"+flow.endLine+". Not runtime execution.");renderFlowStep();if(!flowSteps.length)$("flow-step").textContent=flow.reason||"No flow steps found.";}
+ try{const source=await fetchRepositoryFile(repo,file),flow=extractFunctionFlow([{path:node.path,source}],{path:node.path,line:node.line,name:node.label});flowSteps=flow.steps;flowIndex=0;currentDataFlow=analyzeVariableFlow(flowSteps);renderDataFlow();$("flow-note").textContent=flow.reason||("Static source map for "+flow.functionName+" · "+flow.path+":"+flow.startLine+"–"+flow.endLine+". Not runtime execution.");renderFlowStep();if(!flowSteps.length)$("flow-step").textContent=flow.reason||"No flow steps found.";}
  catch(error){$("flow-step").textContent="Unable to trace function: "+error.message;flowSteps=[];renderFlowStep();}
  finally{button.disabled=!selectedFlowNode;button.textContent="TRACE SELECTED FUNCTION";}
 });
