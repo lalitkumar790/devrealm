@@ -151,7 +151,7 @@ async function openCodeMapNode(node,degree){
  $("source-viewer").hidden=false;$("source-path").textContent=node.path+" · "+node.label;$("source-code").textContent="Loading selected node source…";
  try{const source=await fetchRepositoryFile(repo,file),lines=source.split("\n");$("source-code").textContent=lines.map((line,index)=>(index+1===node.line?"▶ ":"  ")+String(index+1).padStart(4," ")+" │ "+line).join("\n");$("source-meta").textContent=node.kind.toUpperCase()+" · "+degree+" connected relationships · line "+node.line;}catch(error){$("source-code").textContent=error.message;$("source-meta").textContent="Source preview unavailable";}
 }
-$("module-map-tab").addEventListener("click",()=>{codeMapMode="modules";$("module-map-tab").classList.add("active");$("function-map-tab").classList.remove("active");renderCodeMap();});
+$("module-map-tab").addEventListener("click",()=>{codeMapMode="modules";selectedFlowNode=null;$("trace-function").disabled=true;$("module-map-tab").classList.add("active");$("function-map-tab").classList.remove("active");renderCodeMap();});
 $("function-map-tab").addEventListener("click",()=>{codeMapMode="functions";$("function-map-tab").classList.add("active");$("module-map-tab").classList.remove("active");renderCodeMap();});
 $("code-map-filter").addEventListener("input",renderCodeMap);
 $("code-map-zoom").addEventListener("input",applyCodeMapZoom);
