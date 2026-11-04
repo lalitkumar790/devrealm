@@ -18,6 +18,7 @@ DevRealm turns repositories into explorable planets and groups them into systems
 - Active repository metadata adds a visual activity halo.
 - Search any public GitHub username; sample universe works without credentials.
 - Filter the current galaxy live by repository name, full name, description, primary language or topic. Non-matching planets and their constellation links disappear; clearing the search restores the complete universe.
+- Compare two selected repository planets from their inspector panels. The comparison reports primary languages, stars, forks, open issues, repository size, shared topics and repository-specific topics; the comparison is based on public GitHub metadata rather than a full source-code diff.
 - Minimal in-world HUD keeps the 3D scene central.
 
 ## Run locally
