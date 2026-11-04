@@ -301,7 +301,7 @@ test("extractFunctionFlow creates ordered, source-linked static execution steps"
   "  const result = await transform(normalized);",
   "  return result;",
   "}"
- ].join("\\n");
+ ].join("\n");
  const flow=extractFunctionFlow([{path:"src/calculate.js",source}],{path:"src/calculate.js",line:1,name:"calculate"});
  assert.equal(flow.functionName,"calculate");
  assert.ok(flow.steps.length>=5);
