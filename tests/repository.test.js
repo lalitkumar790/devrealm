@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols, analyzeCallGraph, traceFunctionImpact, matchesRepository, compareRepositories, extractFunctionFlow } from "../src/repository.js";
+import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols, analyzeCallGraph, traceFunctionImpact, matchesRepository, compareRepositories, extractFunctionFlow, analyzeVariableFlow } from "../src/repository.js";
 
 test("analyzeTree counts files, source files and directory contents", () => {
   const result = analyzeTree([
@@ -318,4 +318,26 @@ test("extractFunctionFlow reports unsupported or missing function bodies safely"
  const flow=extractFunctionFlow([{path:"src/a.js",source:"const value = 1;"}],{path:"src/a.js",line:1,name:"missing"});
  assert.equal(flow.steps.length,0);
  assert.match(flow.reason,/could not be located/);
+});
+
+
+test("analyzeVariableFlow tracks declarations, reads, assignments and return use",()=>{
+ const flow=analyzeVariableFlow([
+  {index:1,line:2,kind:"assignment",text:"const cleaned = input.trim();",calls:["trim"]},
+  {index:2,line:3,kind:"assignment",text:"const result = transform(cleaned);",calls:["transform"]},
+  {index:3,line:4,kind:"return",text:"return result;",calls:[]}
+ ]);
+ assert.deepEqual(flow.variables.map(item=>item.name),["cleaned","input","result","transform"]);
+ assert.equal(flow.variables.find(item=>item.name==="cleaned").firstDefinedAt,2);
+ assert.equal(flow.variables.find(item=>item.name==="input").firstDefinedAt,null);
+ assert.ok(flow.edges.some(edge=>edge.from==="cleaned"&&edge.to==="input"));
+ assert.ok(flow.events.at(-1).returns);
+ assert.equal(flow.metrics.defined,2);
+});
+
+test("analyzeVariableFlow returns empty safe result for no steps",()=>{
+ const flow=analyzeVariableFlow([]);
+ assert.deepEqual(flow.variables,[]);
+ assert.deepEqual(flow.edges,[]);
+ assert.deepEqual(flow.metrics,{variables:0,defined:0,unresolved:0,reads:0});
 });
