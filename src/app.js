@@ -21,7 +21,7 @@ function renderComparison(){
  const panel=$("compare-panel"),results=$("compare-results");
  $("compare-count").textContent=comparisonSelection.length+" / 2";
  $("add-compare").textContent=comparisonSelection.some(repo=>repo.id===window.selectedRepository?.id)?"✓ ADDED TO COMPARISON":"＋ ADD TO COMPARISON";
- panel.hidden=comparisonSelection.length===0;results.replaceChildren();
+ panel.hidden=comparisonSelection.length===0;$("compare-structure").hidden=comparisonSelection.length!==2;results.replaceChildren();
  if(comparisonSelection.length<2){$("compare-status").textContent=comparisonSelection.length?"Now select a second planet to compare.":"Select two repositories to compare.";return;}
  const result=compareRepositories(comparisonSelection[0],comparisonSelection[1]);
  $("compare-status").textContent=result.first.fullName+"  VS  "+result.second.fullName;
@@ -55,6 +55,27 @@ $("add-compare").addEventListener("click",()=>{
  comparisonSelection.push(repo);renderComparison();
 });
 $("clear-compare").addEventListener("click",()=>{comparisonSelection=[];renderComparison();});
+$("compare-structure").addEventListener("click",async()=>{
+ if(comparisonSelection.length!==2)return;
+ const [first,second]=comparisonSelection,button=$("compare-structure"),results=$("compare-results");
+ button.disabled=true;button.textContent="ANALYZING BOTH REPOSITORIES…";
+ const status=$("compare-status");status.textContent="Fetching both Git trees and sampling local imports…";
+ try{
+  const [firstTree,secondTree]=await Promise.all([fetchRepositoryTree(first),fetchRepositoryTree(second)]);
+  const [left,right]=[analyzeArchitecture(firstTree),analyzeArchitecture(secondTree)];
+  const rows=[["FILES IN TREE",firstTree.totalFiles,secondTree.totalFiles],["DIRECTORIES",firstTree.directories.length,secondTree.directories.length],["SAMPLED SOURCE FILES",left.sampledFiles,right.sampledFiles],["RESOLVED LOCAL LINKS",left.resolvedLinks,right.resolvedLinks],["ENTRY CANDIDATES",left.entryCandidates.length,right.entryCandidates.length],["DEPENDENCY CYCLES",left.cycles.length,right.cycles.length],["DEPENDENCY HUBS",left.hubs.length,right.hubs.length],["ISOLATED FILES",left.isolated.length,right.isolated.length]];
+  const section=document.createElement("section");section.className="compare-structure-results";
+  const heading=document.createElement("strong");heading.textContent="STATIC ARCHITECTURE SIGNALS";section.append(heading);
+  const table=document.createElement("div");table.className="compare-table";
+  for(const [label,a,b] of rows){const row=document.createElement("div");row.className="compare-row";for(const value of [label,fmt(a),fmt(b)]){const cell=document.createElement("span");cell.textContent=value;row.append(cell);}table.append(row);}
+  section.append(table);
+  const note=document.createElement("small");note.textContent="Heuristic static analysis of sampled source files; not a complete dependency graph or runtime architecture.";section.append(note);
+  results.append(section);
+  status.textContent="Structure comparison complete · "+firstTree.scannedSourceFiles+" and "+secondTree.scannedSourceFiles+" source files sampled.";
+ }catch(error){status.textContent="Structure comparison failed: "+error.message;}
+ finally{button.disabled=false;button.textContent="◈ COMPARE CODE STRUCTURE";}
+});
+
 
 $("load-history").addEventListener("click",async()=>{const repo=window.selectedRepository;if(!repo)return;const button=$("load-history");button.disabled=true;button.textContent="LOADING HISTORY…";$("history-panel").hidden=false;$("history-status").textContent="Fetching recent commits…";try{stopReplay();window.repositoryHistory=await fetchRepositoryHistory(repo,30);$("history-play").disabled=window.repositoryHistory.length<2;const slider=$("history-slider");slider.min="0";slider.max=String(Math.max(0,window.repositoryHistory.length-1));slider.value="0";slider.disabled=window.repositoryHistory.length===0;$("history-index").textContent=window.repositoryHistory.length?((Number(slider.value)+1)+" / "+window.repositoryHistory.length):"NO REVISIONS";$("history-status").textContent=window.repositoryHistory.length+" revisions · newest to oldest";await showHistoricalRevision(Number(slider.value));}catch(error){$("history-status").textContent=error.message;}finally{button.disabled=false;button.textContent="RELOAD HISTORY";}});
 const historicalTreeCache=new Map();let revisionRequestId=0,replayTimer=null,replayPlaying=false;
