@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols, analyzeCallGraph, traceFunctionImpact, matchesRepository } from "../src/repository.js";
+import { analyzeTree, moduleForPath, childrenAt, extractImportSpecifiers, resolveImportPath, compareTrees, createLineDiff, analyzeArchitecture, traceDependencies, analyzeSymbols, analyzeCallGraph, traceFunctionImpact, matchesRepository, compareRepositories } from "../src/repository.js";
 
 test("analyzeTree counts files, source files and directory contents", () => {
   const result = analyzeTree([
@@ -274,4 +274,18 @@ test("matchesRepository searches names, descriptions, languages and topics case-
  assert.equal(matchesRepository(repo,"ROS2"),true);
  assert.equal(matchesRepository(repo,"python"),false);
  assert.equal(matchesRepository(repo,"   "),true);
+});
+
+
+test("compareRepositories reports metric deltas and topic overlap without mutating inputs",()=>{
+ const first={name:"Alpha",full_name:"org/Alpha",language:"TypeScript",stargazers_count:10,forks_count:2,open_issues_count:4,size:120,topics:["robotics","ros2"]};
+ const second={name:"Beta",full_name:"org/Beta",language:"Python",stargazers_count:25,forks_count:1,open_issues_count:3,size:240,topics:["ros2","ai"]};
+ const result=compareRepositories(first,second);
+ assert.equal(result.sameLanguage,false);
+ assert.deepEqual(result.sharedTopics,["ros2"]);
+ assert.deepEqual(result.firstOnlyTopics,["robotics"]);
+ assert.deepEqual(result.secondOnlyTopics,["ai"]);
+ assert.deepEqual(result.metrics.stargazers_count,{first:10,second:25,delta:15});
+ assert.deepEqual(result.metrics.size,{first:120,second:240,delta:120});
+ assert.deepEqual(first.topics,["robotics","ros2"]);
 });
