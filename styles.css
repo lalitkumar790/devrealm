@@ -124,3 +124,15 @@
 .flow-kind.await{border-color:#91b8f566;color:#91b8f5}
 .flow-debugger input[type=range]{width:100%;margin:9px 0;accent-color:#8cebd0}
 .flow-note{color:#8298a5;font:7px/1.6 "DM Mono",monospace}
+
+
+.data-flow-heading{display:flex;justify-content:space-between;gap:8px;margin:12px 0 7px;color:#9ed7ed;font:7px "DM Mono",monospace;letter-spacing:.1em}
+.data-flow-heading span:last-child{color:#8499a5;text-align:right}
+.data-flow-map{max-height:240px;overflow:auto;border:1px solid #ffffff15;background:radial-gradient(ellipse at center,#10232d55,transparent 75%)}
+.data-flow-map svg{display:block;width:100%;min-width:420px;height:auto}
+.data-flow-edge{fill:none;stroke:#8cebd0;stroke-width:1.5;stroke-opacity:.5;stroke-dasharray:4 4}
+.data-flow-node{cursor:pointer;outline:none}
+.data-flow-node rect{fill:#102c36;stroke:#8cebd0;stroke-width:1.2}
+.data-flow-node text{fill:#e0f5ee;font:11px "DM Mono",monospace;pointer-events:none}
+.data-flow-node .data-flow-meta{fill:#8ca6af;font-size:8px}
+.data-flow-node:hover rect,.data-flow-node:focus rect{fill:#1b514c;stroke:#fff}
