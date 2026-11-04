@@ -81,3 +81,27 @@
 .compare-structure-results{margin-top:10px;padding-top:9px;border-top:1px solid #ffffff20}
 .compare-structure-results>strong{display:block;margin-bottom:7px;color:#9ed7ed;font:7px "DM Mono",monospace;letter-spacing:.1em}
 .compare-structure-results>small{display:block;margin-top:8px;color:#8298a5;font:7px/1.5 "DM Mono",monospace}
+
+
+.code-visualizer{margin:14px 0 10px;padding:10px;border:1px solid #ffffff20;background:#050d18d9}
+.code-visualizer-heading{display:flex;justify-content:space-between;align-items:center;color:#a4f5d7;font:8px "DM Mono",monospace;letter-spacing:.12em;margin-bottom:9px}
+.code-visualizer-heading span:last-child{color:#8298a5}
+.code-map-toolbar{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.code-map-toolbar button,.code-map-controls button{border:1px solid #ffffff25;background:#0b1723;color:#9aadb7;padding:7px 8px;font:7px "DM Mono",monospace;cursor:pointer}
+.code-map-toolbar button.active{border-color:#8cebd088;background:#10302d;color:#a4f5d7}
+.code-map-toolbar input{flex:1;min-width:90px;border:1px solid #ffffff20;background:#050b13;color:#e8f5f1;padding:7px;font:8px "DM Mono",monospace;outline:none}
+.code-map-controls{display:flex;align-items:center;gap:8px;margin:8px 0;color:#8499a5;font:7px "DM Mono",monospace}
+.code-map-controls input{flex:1;min-width:50px;accent-color:#8cebd0}
+.code-map-controls button{padding:5px 7px}
+.code-map-stage{height:310px;overflow:hidden;border:1px solid #ffffff12;background:radial-gradient(ellipse at center,#10232d66,transparent 72%);position:relative}
+.code-map-stage svg{display:block;width:100%;height:100%;touch-action:pan-y}
+.code-map-empty{height:100%;display:grid;place-items:center;padding:20px;text-align:center;color:#7e929f;font:8px/1.7 "DM Mono",monospace}
+.code-map-edge{stroke:#69cbb4;stroke-width:1.15;stroke-opacity:.35}
+.code-map-node{cursor:pointer;outline:none}
+.code-map-node circle{stroke-width:1.5;transition:r .15s,fill .15s}
+.code-map-node .module-node{fill:#133d43;stroke:#8cebd0}
+.code-map-node .function-node{fill:#23385d;stroke:#9dc7ff}
+.code-map-node:hover circle,.code-map-node:focus circle{fill:#a4f5d7;stroke:#fff;stroke-width:2}
+.code-map-node text{fill:#c4d7dc;font:10px "DM Mono",monospace;pointer-events:none}
+.code-map-detail{margin-top:8px;padding:7px;border-left:2px solid #8cebd0;background:#0a1721;color:#a8c1c7;font:8px/1.6 "DM Mono",monospace;overflow-wrap:anywhere}
+@media(max-width:640px){.code-map-stage{height:240px}.code-map-toolbar button{font-size:6px;padding:6px}.code-map-node text{font-size:12px}}
