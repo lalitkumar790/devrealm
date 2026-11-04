@@ -265,6 +265,34 @@ export function extractFunctionFlow(sourceFiles = [], target = {}) {
  return {functionName:scope.name,path:scope.path,startLine:scope.startLine,endLine:scope.endLine,steps,reason:steps.length?"":"No executable-looking statements were detected in this function body."};
 }
 
+export function analyzeVariableFlow(steps = []) {
+ const variables=new Map(),edges=[],events=[];
+ const identifier=/\b[A-Za-z_$][\w$]*\b/g;
+ const reserved=new Set(["const","let","var","return","throw","if","else","for","while","await","async","new","true","false","null","undefined","this","function","try","catch","finally","switch","case","break","continue","typeof","instanceof","void","yield"]);
+ for(const step of steps){
+  const code=maskNonCode(step.text||"").trim();if(!code)continue;
+  const declaration=code.match(/^(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?:=\s*(.*))?/);
+  const assignment=code.match(/^([A-Za-z_$][\w$]*)\s*(?:\+\+|--|[+*/%-]?=(?!=))\s*(.*)$/);
+  const returned=code.match(/\breturn\s+([^;]+)/);
+  let writes=[];
+  if(declaration)writes=[declaration[1]];
+  else if(assignment)writes=[assignment[1]];
+  for(const name of writes){
+   if(!variables.has(name))variables.set(name,{name,firstDefinedAt:step.line,lastUpdatedAt:step.line,writes:0,reads:0});
+   const record=variables.get(name);record.lastUpdatedAt=step.line;record.writes++;
+  }
+  const expression=declaration?.[2]||assignment?.[2]||returned?.[1]||code;
+  const reads=[...new Set([...expression.matchAll(identifier)].map(match=>match[0]).filter(name=>!reserved.has(name)&&!writes.includes(name)))];
+  for(const name of reads){
+   if(!variables.has(name))variables.set(name,{name,firstDefinedAt:null,lastUpdatedAt:null,writes:0,reads:0});
+   variables.get(name).reads++;
+   for(const written of writes)edges.push({from:written,to:name,line:step.line,kind:"data-use"});
+  }
+  events.push({step:step.index,line:step.line,kind:step.kind,writes,reads,returns:Boolean(returned),expression:expression.slice(0,180)});
+ }
+ return {variables:[...variables.values()],edges,events,metrics:{variables:variables.size,defined:[...variables.values()].filter(item=>item.firstDefinedAt!==null).length,unresolved:[...variables.values()].filter(item=>item.firstDefinedAt===null).length,reads:edges.length}};
+}
+
 export function analyzeCallGraph(sourceFiles = [], relations = []) {
  const symbols=analyzeSymbols(sourceFiles).filter(symbol=>symbol.kind==="function");
  const byName=new Map();
