@@ -240,6 +240,31 @@ function scopeAt(scopes,path,line) {
 }
 
 const CALL_KEYWORDS = new Set(["if","for","while","switch","catch","function","return","typeof","new","class","def","fn","func","with","super","this","print","require","import"]);
+export function extractFunctionFlow(sourceFiles = [], target = {}) {
+ const symbols=analyzeSymbols(sourceFiles).filter(item=>item.kind==="function");
+ const scopes=findFunctionScopes(sourceFiles,symbols);
+ const scope=scopes.find(item=>item.path===target.path&&item.startLine===target.line)||scopes.find(item=>item.path===target.path&&item.name===target.name);
+ if(!scope)return {functionName:target.name||"unknown",path:target.path||"",startLine:target.line||1,steps:[],reason:"Function body could not be located in the sampled source."};
+ const file=sourceFiles.find(item=>item.path===scope.path),lines=(file?.source||"").split("\n"),steps=[];
+ const start=Math.max(0,scope.startLine-1),end=Math.min(lines.length,scope.endLine);
+ for(let index=start;index<end;index++){
+  const raw=lines[index],line=raw.trim();if(!line)continue;
+  const code=maskNonCode(line).trim();if(!code||/^[{}()[\];,]+$/.test(code))continue;
+  let kind="statement";
+  if(/^(?:export\s+)?(?:async\s+)?function\b|^(?:const|let|var)\s+/.test(line)&&index===start)kind="declaration";
+  else if(/\breturn\b/.test(code))kind="return";
+  else if(/\bthrow\b/.test(code))kind="exception";
+  else if(/\b(?:if|else\s+if|else|switch|case|match)\b/.test(code))kind="condition";
+  else if(/\b(?:for|while|do)\b/.test(code))kind="loop";
+  else if(/\bawait\b/.test(code))kind="await";
+  else if(/\b(?:try|catch|finally)\b/.test(code))kind="exception";
+  else if(/^(?:const|let|var)\s+/.test(code)||/^[A-Za-z_$][\w$.[\]]*\s*(?:\+\+|--|[+*/%-]?=(?!=))/.test(code))kind="assignment";
+  const calls=[...code.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)].map(match=>match[1]).filter(name=>!CALL_KEYWORDS.has(name));
+  steps.push({index:steps.length+1,line:index+1,kind,text:line.slice(0,240),calls});
+ }
+ return {functionName:scope.name,path:scope.path,startLine:scope.startLine,endLine:scope.endLine,steps,reason:steps.length?"":"No executable-looking statements were detected in this function body."};
+}
+
 export function analyzeCallGraph(sourceFiles = [], relations = []) {
  const symbols=analyzeSymbols(sourceFiles).filter(symbol=>symbol.kind==="function");
  const byName=new Map();
