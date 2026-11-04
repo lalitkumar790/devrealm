@@ -1,6 +1,22 @@
 const SOURCE_EXTENSIONS = new Set([".js",".jsx",".ts",".tsx",".py",".rs",".go",".java",".cpp",".c",".h",".hpp",".cs",".rb",".php",".swift",".kt",".vue",".svelte"]);
 const ext = path => { const i=path.lastIndexOf("."); return i<0 ? "" : path.slice(i).toLowerCase(); };
 
+export function compareRepositories(first = {}, second = {}) {
+ const firstTopics=new Set(first.topics||[]),secondTopics=new Set(second.topics||[]);
+ const sharedTopics=[...firstTopics].filter(topic=>secondTopics.has(topic)).sort();
+ const firstOnlyTopics=[...firstTopics].filter(topic=>!secondTopics.has(topic)).sort();
+ const secondOnlyTopics=[...secondTopics].filter(topic=>!firstTopics.has(topic)).sort();
+ const metrics=["stargazers_count","forks_count","open_issues_count","size"];
+ const values=Object.fromEntries(metrics.map(key=>[key,{first:Number(first[key]||0),second:Number(second[key]||0),delta:Number(second[key]||0)-Number(first[key]||0)}]));
+ return {
+  first:{name:first.name||first.full_name||"Repository A",fullName:first.full_name||first.name||"",language:first.language||"Other"},
+  second:{name:second.name||second.full_name||"Repository B",fullName:second.full_name||second.name||"",language:second.language||"Other"},
+  sameLanguage:(first.language||"Other")===(second.language||"Other"),
+  sharedTopics,firstOnlyTopics,secondOnlyTopics,metrics:values,
+  updatedAt:{first:first.updated_at||null,second:second.updated_at||null}
+ };
+}
+
 export function matchesRepository(repo = {}, query = "") {
  const needle=String(query).trim().toLowerCase();
  if(!needle)return true;
