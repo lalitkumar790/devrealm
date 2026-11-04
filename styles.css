@@ -72,3 +72,12 @@
 .compare-topics div{display:flex;flex-direction:column;gap:4px}
 .compare-topics strong{color:#8cebd0;font:7px "DM Mono",monospace;letter-spacing:.08em}
 .compare-topics span{color:#aabac3;font:8px/1.5 "DM Mono",monospace;overflow-wrap:anywhere}
+
+
+.compare-structure{width:100%;margin:8px 0;padding:9px;border:1px solid #79b9dc66;background:#10202d;color:#b8e5f2;font:8px "DM Mono",monospace;letter-spacing:.08em;cursor:pointer}
+.compare-structure:hover:not(:disabled){border-color:#a4f5d7;color:#a4f5d7}
+.compare-structure:disabled{opacity:.5;cursor:wait}
+.compare-structure[hidden]{display:none}
+.compare-structure-results{margin-top:10px;padding-top:9px;border-top:1px solid #ffffff20}
+.compare-structure-results>strong{display:block;margin-bottom:7px;color:#9ed7ed;font:7px "DM Mono",monospace;letter-spacing:.1em}
+.compare-structure-results>small{display:block;margin-top:8px;color:#8298a5;font:7px/1.5 "DM Mono",monospace}
