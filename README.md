@@ -18,6 +18,7 @@ DevRealm turns repositories into explorable planets and groups them into systems
 - Active repository metadata adds a visual activity halo.
 - Search any public GitHub username; sample universe works without credentials.
 - Filter the current galaxy live by repository name, full name, description, primary language or topic. Non-matching planets and their constellation links disappear; clearing the search restores the complete universe.
+- Explore sampled source architecture through interactive SVG module and function-call maps. Filter nodes, zoom the graph, select modules/functions, focus their location in the 3D repository and open the corresponding source line.
 - Compare two selected repository planets from their inspector panels. The comparison reports primary languages, stars, forks, open issues, repository size, shared topics and repository-specific topics; An on-demand sampled architecture comparison also reports file/directory counts, sampled source files, resolved local links, entry candidates, dependency cycles, hubs and isolated files. These are heuristic static signals, not a complete dependency audit.
 - Minimal in-world HUD keeps the 3D scene central.
 
