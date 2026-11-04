@@ -105,3 +105,22 @@
 .code-map-node text{fill:#c4d7dc;font:10px "DM Mono",monospace;pointer-events:none}
 .code-map-detail{margin-top:8px;padding:7px;border-left:2px solid #8cebd0;background:#0a1721;color:#a8c1c7;font:8px/1.6 "DM Mono",monospace;overflow-wrap:anywhere}
 @media(max-width:640px){.code-map-stage{height:240px}.code-map-toolbar button{font-size:6px;padding:6px}.code-map-node text{font-size:12px}}
+
+
+.flow-debugger{margin-top:10px;padding:10px;border:1px solid #8cebd044;background:linear-gradient(145deg,#0b1b27,#07101a)}
+.flow-debugger-head{display:flex;justify-content:space-between;color:#a4f5d7;font:8px "DM Mono",monospace;letter-spacing:.1em}
+.flow-debugger-head span:last-child{color:#9aafba}
+.flow-debugger-actions{display:flex;gap:5px;flex-wrap:wrap;margin:9px 0}
+.flow-debugger-actions button{padding:7px 8px;border:1px solid #ffffff25;background:#0b1723;color:#b5c7ce;font:7px "DM Mono",monospace;cursor:pointer}
+.flow-debugger-actions button:first-child{border-color:#8cebd066;color:#a4f5d7}
+.flow-debugger-actions button:disabled{opacity:.35;cursor:not-allowed}
+.flow-step{display:flex;flex-direction:column;gap:8px;min-height:88px;padding:10px;border:1px solid #ffffff16;background:#050b13}
+.flow-step code{white-space:pre-wrap;overflow-wrap:anywhere;color:#e0eef0;font:9px/1.7 "DM Mono",monospace}
+.flow-step small{color:#8fa7b2;font:7px/1.5 "DM Mono",monospace}
+.flow-kind{align-self:flex-start;padding:4px 6px;border:1px solid #8cebd066;color:#a4f5d7;font:7px "DM Mono",monospace;letter-spacing:.08em}
+.flow-kind.condition,.flow-kind.loop{border-color:#e7bd7266;color:#e7bd72}
+.flow-kind.return{border-color:#79d9a766;color:#79d9a7}
+.flow-kind.exception{border-color:#f0808066;color:#f08080}
+.flow-kind.await{border-color:#91b8f566;color:#91b8f5}
+.flow-debugger input[type=range]{width:100%;margin:9px 0;accent-color:#8cebd0}
+.flow-note{color:#8298a5;font:7px/1.6 "DM Mono",monospace}
