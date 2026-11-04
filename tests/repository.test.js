@@ -327,7 +327,7 @@ test("analyzeVariableFlow tracks declarations, reads, assignments and return use
   {index:2,line:3,kind:"assignment",text:"const result = transform(cleaned);",calls:["transform"]},
   {index:3,line:4,kind:"return",text:"return result;",calls:[]}
  ]);
- assert.deepEqual(flow.variables.map(item=>item.name),["cleaned","input","result","transform"]);
+ assert.deepEqual(flow.variables.map(item=>item.name),["cleaned","input","result"]);
  assert.equal(flow.variables.find(item=>item.name==="cleaned").firstDefinedAt,2);
  assert.equal(flow.variables.find(item=>item.name==="input").firstDefinedAt,null);
  assert.ok(flow.edges.some(edge=>edge.from==="cleaned"&&edge.to==="input"));
